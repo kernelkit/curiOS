@@ -1,0 +1,10 @@
+config BR2_PACKAGE_OPENRESTY
+	bool "openresty"
+	depends on !BR2_PACKAGE_NGINX
+	select BR2_PACKAGE_PCRE
+	select BR2_PACKAGE_PCRE_UTF
+	select BR2_PACKAGE_OPENSSL
+	help
+	  OpenResty NGINX Variant
+
+	  http://github.com/openresty/openresty
