@@ -4,7 +4,7 @@
 #
 ################################################################################
 
-OPENRESTY_VERSION = 1.9.7.4
+OPENRESTY_VERSION = 1.9.15.1
 OPENRESTY_SITE = https://openresty.org/download
 OPENRESTY_DEPENDENCIES += pcre openssl
 OPENRESTY_LICENSE = BSD-2c
