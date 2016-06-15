@@ -22,7 +22,7 @@ Step 2 - Clone CoreOS_buildroot (note: this should not be in the buildroot
 directory):
 
 ```
-$ git clone git@github.com:brianredbeard/buildroot.git
+$ git clone git@github.com:brianredbeard/coreos_buildroot.git
 ```
 
 Step 3 - Reference the `coreos_buildroot` directory from `buildroot`:
