@@ -4,7 +4,7 @@
 #
 ################################################################################
 
-OPENRESTY_VERSION = 1.9.7.4
+OPENRESTY_VERSION = 1.9.15.1
 OPENRESTY_SITE = https://openresty.org/download
 OPENRESTY_DEPENDENCIES += pcre openssl
 OPENRESTY_LICENSE = BSD-2c
@@ -43,8 +43,8 @@ OPENRESTY_CONF_OPTS += \
         --pid-path=/var/run/nginx.pid \
         --lock-path=/var/run/lock/nginx.lock \
         --error-log-path=/var/log/nginx/error.log \
-        --user=nobody \                                                        
-        --group=nogroup \ 
+        --user=nobody \
+        --group=nogroup \
         --http-log-path=/var/log/nginx/access.log \
         --http-client-body-temp-path=/var/tmp/nginx/client-body \
         --http-proxy-temp-path=/var/tmp/nginx/proxy \
