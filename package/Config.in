@@ -1,3 +1,7 @@
 menu "Networking applications"  
-	source "$BR2_EXTERNAL/package/openresty/Config.in"
+	source "$BR2_EXTERNAL_COREOS_BUILDROOT/package/openresty/Config.in"
+endmenu
+
+menu "Other"
+	source "$BR2_EXTERNAL_COREOS_BUILDROOT/package/python-pip/Config.in"
 endmenu
