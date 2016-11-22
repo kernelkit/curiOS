@@ -29,7 +29,7 @@ Step 3 - Reference the `coreos_buildroot` directory from `buildroot`:
 
 ```
 $ cd buildroot
-$ make BR2_EXTERNAL_COREOS_BUILDROOT=../coreos_buildroot menuconfig
+$ make BR2_EXTERNAL=../coreos_buildroot menuconfig
 ```
 This connects the two repos together and exposes all of the coreos_buildroot
 options through the menu option `"User-provided options  --->"`
