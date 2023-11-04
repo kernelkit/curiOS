@@ -12,7 +12,7 @@ to running on an embedded platform.
 
  1. Clone this repo
 
-        $ git clone https://github.com/troglobit/curiOS
+        $ git clone https://github.com/kernelkit/curiOS
         $ cd curiOS/
         $ git submodule update --init
 
