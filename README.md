@@ -18,7 +18,7 @@ to running on an embedded platform.
 
  2. Configure & Build
 
-        $ make curious_defconfig
+        $ make curious_amd64_defconfig
         $ make
 
  3. Upload your OCI image
