@@ -8,3 +8,8 @@ similar.  Buildroot is an SDK for building embedded Linux distributions.  It
 handles the removal of man pages, shared files, and many pieces not germane
 to running on an embedded platform.
 
+# Origin & References
+
+curiOS is a fork of https://github.com/brianredbeard/coreos_buildroot
+
+[0]: https://buildroot.org
