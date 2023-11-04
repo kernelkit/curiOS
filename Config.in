@@ -1,1 +1,1 @@
-source "$BR2_EXTERNAL_COREOS_BUILDROOT_PATH/package/Config.in"
+source "$BR2_EXTERNAL_CURIOS_PATH/package/Config.in"
