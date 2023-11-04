@@ -1,0 +1,91 @@
+name: Container Claus
+
+on:
+  push:
+    branches:
+      - '**'
+    tags:
+      - '*'
+  workflow_dispatch:
+
+env:
+  IMAGE_NAME: curiOS
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      packages: write
+      contents: read
+    strategy:
+      matrix:
+        platform: [amd64, arm64]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build Variables
+        id: vars
+        run: |
+          target=${{ matrix.platform }}
+          echo "dir=curios-$target"        >> $GITHUB_OUTPUT
+          echo "tgz=curios-$target.tar.gz" >> $GITHUB_OUTPUT
+      - name: Restore Cache of dl/
+        uses: actions/cache@v3
+        with:
+          path: dl/
+          key: dl-${{ matrix.platform }}-${{ hashFiles('.git/modules/buildroot/HEAD', 'configs/*', 'package/*/*.hash') }}
+          restore-keys: |
+            dl-${{ matrix.platform }}-
+            dl-
+      - name: Restore Cache of .ccache/
+        uses: actions/cache@v3
+        with:
+          path: .ccache/
+          key: ccache-${{ matrix.platform }}-${{ hashFiles('.git/modules/buildroot/HEAD', 'package/*/*.hash') }}
+          restore-keys: |
+            ccache-${{ matrix.platform }}-
+            ccache-
+      - name: Configure & Build
+        run: |
+          make curios_${{ matrix.platform }}_defconfig
+          VERSION=$(echo "${{ github.ref }}" | sed -e 's,.*/\(.*\),\1,')
+          [[ "$VERSION" =~ ^v.* ]] && sed -i "s/BR2_TARGET_ROOTFS_OCI_TAG.*/BR2_TARGET_ROOTFS_OCI_TAG=\"$VERSION\"/" output/.config
+          make
+      - name: Prepare Artifact
+        run: |
+          cd output
+          mv images ${{ steps.vars.outputs.dir }}
+          ln -s ${{ steps.vars.outputs.dir }} images
+          tar chfz ${{ steps.vars.outputs.tgz }} ${{ steps.vars.outputs.dir }}
+      - uses: actions/upload-artifact@v3
+        with:
+          path: output/${{ steps.vars.outputs.tgz }}
+
+  push:
+    needs: build
+    runs-on: ubuntu-latest
+    permissions: write-all
+    steps:
+      - uses: actions/download-artifact@v3
+      - name: Prepare Aritfacts
+        run: |
+          mkdir rootfs-oci
+          for file in $(find artifact/ -type f); do
+              tar xf $file
+              rsync -a $(basename $file .tar.gz)/rootfs-oci/ rootfs-oci/
+          done
+          jq -s '.[0].manifests=[.[].manifests|add]|.[0]' curios-*/rootfs-oci/index.json > rootfs-oci/index.json
+          echo "Resulting index.json ====================================="
+          cat rootfs-oci/index.json
+      - name: Log in to registry
+        run: |
+          echo "${{ secrets.GITHUB_TOKEN }}" | skopeo login ghcr.io -u ${{ github.actor }} --password-stdin
+      - name: Push image
+        run: |
+          IMAGE_ID=ghcr.io/${{ github.repository_owner }}/$IMAGE_NAME
+          IMAGE_ID=$(echo $IMAGE_ID | tr '[A-Z]' '[a-z]')
+          VERSION=$(echo "${{ github.ref }}" | sed -e 's,.*/\(.*\),\1,')
+          [[ "$VERSION" =~ ^v.* ]] || VERSION=edge
+          echo IMAGE_ID=$IMAGE_ID
+          echo VERSION=$VERSION
+          ls -l rootfs-oci/blobs/sha256/
+          skopeo copy oci:rootfs-oci:$VERSION docker://$IMAGE_ID:$VERSION
