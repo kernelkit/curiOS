@@ -1,12 +1,12 @@
-# curiOS a minimal container OS
+# curiOS — a slim curated container OS
 
-curiOS, pronounced curious, is a base for building tiny container systems.
+curiOS, pronounced curious, is a slim curated base for system containers.
 
-curiOS, at its core, is just a wrapper around [Buildroot][0] that can take
-your defconfig and create a container image for uploading to Docker Hub or
-similar.  Buildroot is an SDK for building embedded Linux distributions.  It
-handles the removal of man pages, shared files, and many pieces not germane
-to running on an embedded platform.
+curiOS is a wrapper around [Buildroot][0] for creating container images for
+uploading to Docker Hub or similar.  Buildroot is an SDK for building embedded
+Linux distributions.  It handles the removal of man pages, shared files, and
+many pieces not germane to running on an embedded platform, and, as it turns
+out, containers.
 
 ## Quick Start
 
