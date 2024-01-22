@@ -84,7 +84,8 @@ jobs:
           [[ "${VER}" =~ ^v.* ]] || VER=edge
           echo "URL=${URL}"
           echo "VER=${VER}"
+          set -x
           buildah manifest create ${IMG}
           buildah manifest add $IMG oci:${IMG}-amd64-oci
           buildah manifest add $IMG oci:${IMG}-arm64-oci
-          buildah manifest push --all -f v2s2 ${IMG} docker://${URL}:{$VER}
+          buildah manifest push --all -f oci ${IMG} docker://${URL}:{$VER}
