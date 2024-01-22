@@ -8,84 +8,14 @@ on:
       - '*'
   workflow_dispatch:
 
-env:
-  IMG: curios
-
 jobs:
-  build:
-    runs-on: ubuntu-latest
-    permissions:
-      packages: write
-      contents: read
+  supervisor:
     strategy:
       matrix:
-        platform: [amd64, arm64]
-    steps:
-      - uses: actions/checkout@v4
-      - name: Build Variables
-        id: vars
-        run: |
-          target=${{ matrix.platform }}
-          echo "dir=${IMG}-${target}"        >> $GITHUB_OUTPUT
-          echo "tgz=${IMG}-${target}.tar.gz" >> $GITHUB_OUTPUT
-      - name: Restore Cache of dl/
-        uses: actions/cache@v3
-        with:
-          path: dl/
-          key: dl-${{ matrix.platform }}-${{ hashFiles('.git/modules/buildroot/HEAD', 'configs/*', 'package/*/*.hash') }}
-          restore-keys: |
-            dl-${{ matrix.platform }}-
-            dl-
-      - name: Restore Cache of .ccache/
-        uses: actions/cache@v3
-        with:
-          path: .ccache/
-          key: ccache-${{ matrix.platform }}-${{ hashFiles('.git/modules/buildroot/HEAD', 'package/*/*.hash') }}
-          restore-keys: |
-            ccache-${{ matrix.platform }}-
-            ccache-
-      - name: Configure & Build
-        run: |
-          make curios_${{ matrix.platform }}_defconfig
-          VER=$(echo "${{ github.ref }}" | sed -e 's,.*/\(.*\),\1,')
-          [[ "${VER}" =~ ^v.* ]] && sed -i "s/BR2_TARGET_ROOTFS_OCI_TAG.*/BR2_TARGET_ROOTFS_OCI_TAG=\"${VER}\"/" output/.config
-          make
-      - name: Prepare Artifact
-        run: |
-          cd output
-          mv images ${{ steps.vars.outputs.dir }}
-          ln -s ${{ steps.vars.outputs.dir }} images
-          tar chfz ${{ steps.vars.outputs.tgz }} ${{ steps.vars.outputs.dir }}
-      - uses: actions/upload-artifact@v3
-        with:
-          path: output/${{ steps.vars.outputs.tgz }}
-
-  push:
-    needs: build
-    runs-on: ubuntu-latest
-    permissions: write-all
-    steps:
-      - uses: actions/download-artifact@v3
-      - name: Prepare Aritfacts
-        run: |
-          for file in $(find artifact/ -type f); do
-              name=$(basename ${file} .tar.gz)
-              tar xf ${file}
-              mv ${name}/rootfs-oci ${name}-oci
-          done
-          ls -la *-oci/
-      - name: Log in to registry
-        run: |
-          echo "${{ secrets.GITHUB_TOKEN }}" | buildah login -u ${{ github.actor }} --password-stdin ghcr.io
-      - name: Push image
-        run: |
-          URL=ghcr.io/${{ github.repository_owner }}/${IMG}
-          VER=$(echo "${{ github.ref }}" | sed -e 's,.*/\(.*\),\1,')
-          [[ "${VER}" =~ ^v.* ]] || VER=edge
-          echo "URL=${URL}"
-          echo "VER=${VER}"
-          set -x
-          buildah manifest create ${IMG}
-          buildah manifest add $IMG oci:${IMG}-amd64-oci
-          buildah manifest add $IMG oci:${IMG}-arm64-oci
-          buildah manifest push --all -f oci ${IMG} docker://${URL}:${VER}
+        app: [curios]
+    uses: ./.github/workflows/build-push.yml
+    with:
+      app: ${{ matrix.app }}
+      ver: $(echo "${{ github.ref }}" | sed -e 's,.*/\(.*\),\1,')
+    secrets:
+      token: ${{ secrets.GITHUB_TOKEN }}

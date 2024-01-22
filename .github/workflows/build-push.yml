@@ -1,0 +1,99 @@
+name: Builder and Pusher Robot
+
+on:
+  workflow_call:
+    inputs:
+      app:
+        description: Application, used for app_defconfig and ghcr/app:VER
+        required: true
+        type: string
+      ver:
+        description: Version, used for tagging apps, e.g., ghcr/app:VER
+        required: true
+        type: string
+    secrets:
+      token:
+        required: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      packages: write
+      contents: read
+    strategy:
+      matrix:
+        platform: [amd64, arm64]
+    steps:
+      - name: Debug
+        run: |
+          echo "Input app: ${{ inputs.app }}"
+          echo "Input ver: ${{ inputs.ver }}"
+      - uses: actions/checkout@v4
+      - name: Build Variables
+        id: vars
+        run: |
+          echo "dir=${{ inputs.app }}-${{ matrix.platform }}"        >> $GITHUB_OUTPUT
+          echo "tgz=${{ inputs.app }}-${{ matrix.platform }}.tar.gz" >> $GITHUB_OUTPUT
+      - name: Restore Cache of dl/
+        uses: actions/cache@v3
+        with:
+          path: dl/
+          key: dl-${{ matrix.platform }}-${{ hashFiles('.git/modules/buildroot/HEAD', 'configs/*', 'package/*/*.hash') }}
+          restore-keys: |
+            dl-${{ matrix.platform }}-
+            dl-
+      - name: Restore Cache of .ccache/
+        uses: actions/cache@v3
+        with:
+          path: .ccache/
+          key: ccache-${{ matrix.platform }}-${{ hashFiles('.git/modules/buildroot/HEAD', 'package/*/*.hash') }}
+          restore-keys: |
+            ccache-${{ matrix.platform }}-
+            ccache-
+      - name: Configure & Build
+        run: |
+          make ${{ inputs.app }}_${{ matrix.platform }}_defconfig
+          VER=${{ inputs.ver }}
+          [[ "${VER}" =~ ^v.* ]] && sed -i "s/BR2_TARGET_ROOTFS_OCI_TAG.*/BR2_TARGET_ROOTFS_OCI_TAG=\"${VER}\"/" output/.config
+          make
+      - name: Prepare Artifact
+        run: |
+          cd output
+          mv images ${{ steps.vars.outputs.dir }}
+          ln -s ${{ steps.vars.outputs.dir }} images
+          tar chfz ${{ steps.vars.outputs.tgz }} ${{ steps.vars.outputs.dir }}
+      - uses: actions/upload-artifact@v3
+        with:
+          path: output/${{ steps.vars.outputs.tgz }}
+
+  push:
+    needs: build
+    runs-on: ubuntu-latest
+    permissions: write-all
+    steps:
+      - uses: actions/download-artifact@v3
+      - name: Prepare Aritfacts
+        run: |
+          for file in $(find artifact/ -type f); do
+              name=$(basename ${file} .tar.gz)
+              tar xf ${file}
+              mv ${name}/rootfs-oci ${name}-oci
+          done
+          ls -la *-oci/
+      - name: Log in to registry
+        run: |
+          echo "${{ secrets.token }}" | buildah login -u ${{ github.actor }} --password-stdin ghcr.io
+      - name: Push image
+        run: |
+          IMG=${{ inputs.app }}
+          URL=ghcr.io/${{ github.repository_owner }}/${IMG}
+          VER=${{ inputs.ver }}
+          [[ "${VER}" =~ ^v.* ]] || VER=edge
+          echo "URL=${URL}"
+          echo "VER=${VER}"
+          set -x
+          buildah manifest create ${IMG}
+          buildah manifest add ${IMG} oci:${IMG}-amd64-oci
+          buildah manifest add ${IMG} oci:${IMG}-arm64-oci
+          buildah manifest push --all -f oci ${IMG} docker://${URL}:${VER}
