@@ -70,7 +70,9 @@ jobs:
   push:
     needs: build
     runs-on: ubuntu-latest
-    permissions: write-all
+    permissions:
+      packages: write
+      contents: read
     steps:
       - uses: actions/download-artifact@v3
       - name: Prepare Aritfacts
