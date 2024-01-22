@@ -15,7 +15,7 @@ jobs:
       packages: write
     strategy:
       matrix:
-        app: [curios]
+        app: [curios, curios-ntpd]
     uses: ./.github/workflows/build-push.yml
     with:
       app: ${{ matrix.app }}
