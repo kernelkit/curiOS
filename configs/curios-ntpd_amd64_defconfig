@@ -26,5 +26,5 @@ BR2_TARGET_ROOTFS_OCI=y
 BR2_TARGET_ROOTFS_OCI_AUTHOR="curiOS"
 BR2_TARGET_ROOTFS_OCI_TAG="edge"
 BR2_TARGET_ROOTFS_OCI_ENTRYPOINT="/sbin/init"
-BR2_TARGET_ROOTFS_OCI_PORTS="22/tcp 161/tcp 161/udp"
-BR2_TARGET_ROOTFS_OCI_LABELS=".url=https://github.com/kernelkit/curiOS .title=curiOS"
+BR2_TARGET_ROOTFS_OCI_PORTS="123/udp"
+BR2_TARGET_ROOTFS_OCI_LABELS=".url=https://github.com/kernelkit/curiOS .title=curiOS-ntpd"
