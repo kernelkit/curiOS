@@ -9,7 +9,7 @@ on:
   workflow_dispatch:
 
 env:
-  IMAGE_NAME: curiOS
+  IMG: curios
 
 jobs:
   build:
@@ -26,8 +26,8 @@ jobs:
         id: vars
         run: |
           target=${{ matrix.platform }}
-          echo "dir=curios-$target"        >> $GITHUB_OUTPUT
-          echo "tgz=curios-$target.tar.gz" >> $GITHUB_OUTPUT
+          echo "dir=${IMG}-${target}"        >> $GITHUB_OUTPUT
+          echo "tgz=${IMG}-${target}.tar.gz" >> $GITHUB_OUTPUT
       - name: Restore Cache of dl/
         uses: actions/cache@v3
         with:
@@ -47,8 +47,8 @@ jobs:
       - name: Configure & Build
         run: |
           make curios_${{ matrix.platform }}_defconfig
-          VERSION=$(echo "${{ github.ref }}" | sed -e 's,.*/\(.*\),\1,')
-          [[ "$VERSION" =~ ^v.* ]] && sed -i "s/BR2_TARGET_ROOTFS_OCI_TAG.*/BR2_TARGET_ROOTFS_OCI_TAG=\"$VERSION\"/" output/.config
+          VER=$(echo "${{ github.ref }}" | sed -e 's,.*/\(.*\),\1,')
+          [[ "${VER}" =~ ^v.* ]] && sed -i "s/BR2_TARGET_ROOTFS_OCI_TAG.*/BR2_TARGET_ROOTFS_OCI_TAG=\"${VER}\"/" output/.config
           make
       - name: Prepare Artifact
         run: |
@@ -68,24 +68,23 @@ jobs:
       - uses: actions/download-artifact@v3
       - name: Prepare Aritfacts
         run: |
-          mkdir rootfs-oci
           for file in $(find artifact/ -type f); do
-              tar xf $file
-              rsync -a $(basename $file .tar.gz)/rootfs-oci/ rootfs-oci/
+              name=$(basename ${file} .tar.gz)
+              tar xf ${file}
+              mv ${name}/rootfs-oci ${name}-oci
           done
-          jq -s '.[0].manifests=[.[].manifests|add]|.[0]' curios-*/rootfs-oci/index.json > rootfs-oci/index.json
-          echo "Resulting index.json ====================================="
-          cat rootfs-oci/index.json
+          ls -la *-oci/
       - name: Log in to registry
         run: |
-          echo "${{ secrets.GITHUB_TOKEN }}" | skopeo login ghcr.io -u ${{ github.actor }} --password-stdin
+          echo "${{ secrets.GITHUB_TOKEN }}" | buildah login -u ${{ github.actor }} --password-stdin ghcr.io
       - name: Push image
         run: |
-          IMAGE_ID=ghcr.io/${{ github.repository_owner }}/$IMAGE_NAME
-          IMAGE_ID=$(echo $IMAGE_ID | tr '[A-Z]' '[a-z]')
-          VERSION=$(echo "${{ github.ref }}" | sed -e 's,.*/\(.*\),\1,')
-          [[ "$VERSION" =~ ^v.* ]] || VERSION=edge
-          echo IMAGE_ID=$IMAGE_ID
-          echo VERSION=$VERSION
-          ls -l rootfs-oci/blobs/sha256/
-          skopeo copy oci:rootfs-oci:$VERSION docker://$IMAGE_ID:$VERSION
+          URL=ghcr.io/${{ github.repository_owner }}/${IMG}
+          VER=$(echo "${{ github.ref }}" | sed -e 's,.*/\(.*\),\1,')
+          [[ "${VER}" =~ ^v.* ]] || VER=edge
+          echo "URL=${URL}"
+          echo "VER=${VER}"
+          buildah manifest create ${IMG}
+          buildah manifest add $IMG oci:${IMG}-amd64-oci
+          buildah manifest add $IMG oci:${IMG}-arm64-oci
+          buildah manifest push --all -f v2s2 ${IMG} docker://${URL}:{$VER}
