@@ -1,7 +1,7 @@
 #!/bin/sh
 tagline="curiOS — a slim curated container OS"
 
-for start in S40network S51sysrepo-plugind S52netopeer2; do
+for start in S02sysctl S20seedrng S40network S51sysrepo-plugind S52netopeer2; do
     rm -f "${TARGET_DIR}/etc/init.d/$start"
 done
 
