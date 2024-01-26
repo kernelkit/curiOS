@@ -36,7 +36,7 @@ jobs:
           echo "dir=${{ inputs.app }}-${{ matrix.platform }}"        >> $GITHUB_OUTPUT
           echo "tgz=${{ inputs.app }}-${{ matrix.platform }}.tar.gz" >> $GITHUB_OUTPUT
       - name: Restore Cache of dl/
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           path: dl/
           key: dl-${{ matrix.platform }}-${{ hashFiles('.git/modules/buildroot/HEAD', 'configs/*', 'package/*/*.hash') }}
@@ -44,7 +44,7 @@ jobs:
             dl-${{ matrix.platform }}-
             dl-
       - name: Restore Cache of .ccache/
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           path: .ccache/
           key: ccache-${{ matrix.platform }}-${{ hashFiles('.git/modules/buildroot/HEAD', 'package/*/*.hash') }}
@@ -63,7 +63,7 @@ jobs:
           mv images ${{ steps.vars.outputs.dir }}
           ln -s ${{ steps.vars.outputs.dir }} images
           tar chfz ${{ steps.vars.outputs.tgz }} ${{ steps.vars.outputs.dir }}
-      - uses: actions/upload-artifact@v3
+      - uses: actions/upload-artifact@v4
         with:
           path: output/${{ steps.vars.outputs.tgz }}
 
@@ -74,7 +74,7 @@ jobs:
       packages: write
       contents: read
     steps:
-      - uses: actions/download-artifact@v3
+      - uses: actions/download-artifact@v4
       - name: Prepare Aritfacts
         run: |
           for file in $(find artifact/ -type f); do
