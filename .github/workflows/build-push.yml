@@ -66,7 +66,7 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           path: output/${{ steps.vars.outputs.tgz }}
-          name: artifact/${{ inputs.app }}-${{ matrix.platform }}
+          name: artifact-${{ inputs.app }}-${{ matrix.platform }}
 
   push:
     needs: build
@@ -76,9 +76,13 @@ jobs:
       contents: read
     steps:
       - uses: actions/download-artifact@v4
+        with:
+          pattern: artifact-*
+          merge-multiple: true
       - name: Prepare Aritfacts
         run: |
-          for file in $(find artifact/ -type f); do
+          ls -l
+          for file in artifact-*; do
               name=$(basename ${file} .tar.gz)
               tar xf ${file}
               mv ${name}/rootfs-oci ${name}-oci
