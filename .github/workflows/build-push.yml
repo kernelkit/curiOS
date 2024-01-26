@@ -81,9 +81,9 @@ jobs:
           merge-multiple: true
       - name: Prepare Aritfacts
         run: |
-          ls -l
-          for file in artifact-*; do
+          for file in *.tar.gz; do
               name=$(basename ${file} .tar.gz)
+              echo "Found: $name"
               tar xf ${file}
               mv ${name}/rootfs-oci ${name}-oci
           done
