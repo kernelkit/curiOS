@@ -1,3 +1,4 @@
 menu "Networking applications"  
+	source "$BR2_EXTERNAL_CURIOS_PATH/package/nft-helper/Config.in"
 	source "$BR2_EXTERNAL_CURIOS_PATH/package/openresty/Config.in"
 endmenu

@@ -1,0 +1,7 @@
+config BR2_PACKAGE_NFT_HELPER
+	bool "nft-helper"
+	help
+	  Wrapper for nft running under tini.  At startup it takes
+	  its first command line argument as the nftables.conf to
+	  load with: 'nft -f /path/to/nftables.conf' on any signal
+	  it shuts down by calling 'nft flush ruleset'.
