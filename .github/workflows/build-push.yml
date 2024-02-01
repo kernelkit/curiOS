@@ -79,28 +79,62 @@ jobs:
         with:
           pattern: artifact-*
           merge-multiple: true
+      - name: Artifact Variables
+        id: vars
+        run: |
+          VER=${{ inputs.ver }}
+          SFX=""
+          if [[ "${VER}" =~ ^v.* ]]; then
+            TAG=${VER#?}
+            SFX="-$VER"
+          else
+            VER=edge
+            TAG=$VER
+          fi
+          echo "ver=$VER" >> $GITHUB_OUTPUT
+          echo "tag=$TAG" >> $GITHUB_OUTPUT
+          echo "sfx=$SFX" >> $GITHUB_OUTPUT
       - name: Prepare Aritfacts
         run: |
+          SFX=${{ steps.vars.outputs.sfx }}
           for file in *.tar.gz; do
               name=$(basename ${file} .tar.gz)
               echo "Found: $name"
               tar xf ${file}
-              mv ${name}/rootfs-oci ${name}-oci
+              mv ${name}/rootfs-oci ${name}-oci${SFX}
+              tar cfz ${name}-oci.tar.gz ${name}-oci${SFX}
           done
-          ls -la *-oci/
+          ls -la *-oci${SFX}/
+          ls -l *.tar.gz
       - name: Log in to registry
         run: |
           echo "${{ secrets.token }}" | buildah login -u ${{ github.actor }} --password-stdin ghcr.io
-      - name: Push image
+      - name: Push image(s)
         run: |
-          IMG=${{ inputs.app }}
-          URL=ghcr.io/${{ github.repository_owner }}/${IMG}
-          VER=${{ inputs.ver }}
-          [[ "${VER}" =~ ^v.* ]] || VER=edge
-          echo "URL=${URL}"
-          echo "VER=${VER}"
           set -x
+          IMG=${{ inputs.app }}
+          TAG=${{ steps.vars.outputs.tag }}
+          SFX=${{ steps.vars.outputs.sfx }}
+          URL=ghcr.io/${{ github.repository_owner }}/${IMG}
           buildah manifest create ${IMG}
-          buildah manifest add ${IMG} oci:${IMG}-amd64-oci
-          buildah manifest add ${IMG} oci:${IMG}-arm64-oci
-          buildah manifest push --all -f oci ${IMG} docker://${URL}:${VER}
+          buildah manifest add ${IMG} oci:${IMG}-amd64-oci${SFX}
+          buildah manifest add ${IMG} oci:${IMG}-arm64-oci${SFX}
+          buildah manifest push --all -f oci ${IMG} docker://${URL}:${TAG}
+      - uses: ncipollo/release-action@v1
+        with:
+          allowUpdates: true
+          omitName: true
+          omitBody: true
+          omitBodyDuringUpdate: true
+          prerelease: true
+          tag: ${{ steps.vars.outputs.ver }}
+          token: ${{ secrets.GITHUB_TOKEN }}
+          artifacts: "*.tar.gz"
+      - name: Summary
+        run: |
+          cat <<EOF >> $GITHUB_STEP_SUMMARY
+          # Edge Build of ${{ inputs.app }} Complete! :rocket:
+          
+          For the public download links of these build artifacts, please see:
+           <https://github.com/kernelkit/curiOS/releases/tag/edge>
+          EOF
