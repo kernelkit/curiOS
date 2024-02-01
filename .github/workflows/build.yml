@@ -11,8 +11,8 @@ on:
 jobs:
   supervisor:
     permissions:
-      contents: read
       packages: write
+      contents: write
     strategy:
       matrix:
         app: [curios, curios-httpd, curios-ntpd, curios-nftables]
