@@ -1,4 +1,4 @@
-# curiOS — a slim curated container OS
+# curiOS -- a slim curated container OS
 
 curiOS, pronounced curious, is a slim curated base of containers.
 
