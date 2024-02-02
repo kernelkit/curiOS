@@ -120,8 +120,8 @@ jobs:
           SFX=${{ steps.vars.outputs.sfx }}
           URL=ghcr.io/${{ github.repository_owner }}/${IMG}
           buildah manifest create ${IMG}
-          buildah manifest add ${IMG} oci:${IMG}-amd64-oci${SFX}
-          buildah manifest add ${IMG} oci:${IMG}-arm64-oci${SFX}
+          buildah manifest add ${IMG} oci:${IMG}-oci-amd64${SFX}
+          buildah manifest add ${IMG} oci:${IMG}-oci-arm64${SFX}
           buildah manifest push --all -f oci ${IMG} docker://${URL}:${TAG}
       - uses: ncipollo/release-action@v1
         with:
