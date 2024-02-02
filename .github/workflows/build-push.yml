@@ -98,13 +98,16 @@ jobs:
         run: |
           SFX=${{ steps.vars.outputs.sfx }}
           for file in *.tar.gz; do
-              name=$(basename ${file} .tar.gz)
-              echo "Found: $name"
+              fn=$(basename ${file} .tar.gz)
+              name=${fn-*}
+              arch=${fn##*-}
+              echo "Found: $name arch: $arch"
               tar xf ${file}
-              mv ${name}/rootfs-oci ${name}-oci${SFX}
-              tar cfz ${name}-oci.tar.gz ${name}-oci${SFX}
+              rm -f  ${file}
+              mv ${fn}/rootfs-oci ${name}-oci-${arch}${SFX}
+              tar cfz ${name}-oci-${arch}${SFX}.tar.gz ${name}-oci-${arch}${SFX}
           done
-          ls -la *-oci${SFX}/
+          ls -la *-oc*i${SFX}/
           ls -l *.tar.gz
       - name: Log in to registry
         run: |
@@ -133,8 +136,8 @@ jobs:
       - name: Summary
         run: |
           cat <<EOF >> $GITHUB_STEP_SUMMARY
-          # Edge Build of ${{ inputs.app }} Complete! :rocket:
+          # Build of ${{ inputs.app }}, version ${{ steps.vars.outputs.ver }}, Complete! :rocket:
           
           For the public download links of these build artifacts, please see:
-           <https://github.com/kernelkit/curiOS/releases/tag/edge>
+           <https://github.com/kernelkit/curiOS/releases/tag/${{ steps.vars.outputs.ver }}>
           EOF
