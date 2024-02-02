@@ -99,7 +99,7 @@ jobs:
           SFX=${{ steps.vars.outputs.sfx }}
           for file in *.tar.gz; do
               fn=$(basename ${file} .tar.gz)
-              name=${fn-*}
+              name=${fn%-*}
               arch=${fn##*-}
               echo "Found: $name arch: $arch"
               tar xf ${file}
@@ -107,7 +107,7 @@ jobs:
               mv ${fn}/rootfs-oci ${name}-oci-${arch}${SFX}
               tar cfz ${name}-oci-${arch}${SFX}.tar.gz ${name}-oci-${arch}${SFX}
           done
-          ls -la *-oc*i${SFX}/
+          ls -la *-oci*${SFX}/
           ls -l *.tar.gz
       - name: Log in to registry
         run: |
