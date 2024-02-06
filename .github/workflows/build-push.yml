@@ -105,6 +105,7 @@ jobs:
               tar xf ${file}
               rm -f  ${file}
               mv ${fn}/rootfs-oci ${name}-oci-${arch}${SFX}
+              rm -rf -- ${name}-oci-${arch}${SFX}/.[!.]*
               tar cfz ${name}-oci-${arch}${SFX}.tar.gz ${name}-oci-${arch}${SFX}
           done
           ls -la *-oci*${SFX}/
