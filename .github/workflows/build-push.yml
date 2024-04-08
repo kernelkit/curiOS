@@ -60,6 +60,7 @@ jobs:
       - name: Prepare Artifact
         run: |
           cd output
+          cp ../COPYING images/
           mv images ${{ steps.vars.outputs.dir }}
           ln -s ${{ steps.vars.outputs.dir }} images
           tar chfz ${{ steps.vars.outputs.tgz }} ${{ steps.vars.outputs.dir }}
@@ -105,6 +106,7 @@ jobs:
               tar xf ${file}
               rm -f  ${file}
               mv ${fn}/rootfs-oci ${name}-oci-${arch}${SFX}
+              mv ${fn}/COPYING ${name}-oci-${arch}${SFX}/
               rm -rf -- ${name}-oci-${arch}${SFX}/.[!.]*
               tar cfz ${name}-oci-${arch}${SFX}.tar.gz ${name}-oci-${arch}${SFX}
           done
