@@ -111,7 +111,11 @@ jobs:
               tar cfz ${name}-oci-${arch}${SFX}.tar.gz ${name}-oci-${arch}${SFX}
           done
           ls -la *-oci*${SFX}/
-          ls -l *.tar.gz
+          for file in *.tar.gz; do
+              sha256sum $file > $file.sha256
+          done
+          ls -l *.tar.gz*
+
       - name: Log in to registry
         run: |
           echo "${{ secrets.token }}" | buildah login -u ${{ github.actor }} --password-stdin ghcr.io
@@ -135,7 +139,7 @@ jobs:
           prerelease: true
           tag: ${{ steps.vars.outputs.ver }}
           token: ${{ secrets.GITHUB_TOKEN }}
-          artifacts: "*.tar.gz"
+          artifacts: "*.tar.gz*"
       - name: Summary
         run: |
           cat <<EOF >> $GITHUB_STEP_SUMMARY
