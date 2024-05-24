@@ -88,10 +88,21 @@ jobs:
           if [[ "${VER}" =~ ^v.* ]]; then
             TAG=${VER#?}
             SFX="-$VER"
+            if [[ "${VER}" =~ ^v[0-9.]+(-alpha|-beta|-rc)[0-9]* ]]; then
+              PRE=true
+              LAT=false
+            else
+              PRE=false
+              LAT=true
+            fi
           else
             VER=edge
             TAG=$VER
+            PRE=false
+            LAT=false
           fi
+          echo "pre=$PRE" >> $GITHUB_OUTPUT
+          echo "lat=$LAT" >> $GITHUB_OUTPUT
           echo "ver=$VER" >> $GITHUB_OUTPUT
           echo "tag=$TAG" >> $GITHUB_OUTPUT
           echo "sfx=$SFX" >> $GITHUB_OUTPUT
@@ -136,7 +147,8 @@ jobs:
           omitName: true
           omitBody: true
           omitBodyDuringUpdate: true
-          prerelease: true
+          prerelease: ${{ steps.vars.outputs.pre }}
+          makeLatest: ${{ steps.vars.outputs.lat }}
           tag: ${{ steps.vars.outputs.ver }}
           token: ${{ secrets.GITHUB_TOKEN }}
           artifacts: "*.tar.gz*"
