@@ -1,0 +1,7 @@
+config BR2_PACKAGE_MPING
+        bool "mping"
+        help
+           A simple multicast ping program.  Can act as both sender and
+           receiver/reflector of UDP multicast, IPv4 and IPv6 supported.
+
+           http://github.com/troglobit/mping
