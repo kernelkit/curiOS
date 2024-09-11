@@ -36,3 +36,4 @@ BR2_TARGET_ROOTFS_OCI_TAG="edge"
 BR2_TARGET_ROOTFS_OCI_ENTRYPOINT="/sbin/init"
 BR2_TARGET_ROOTFS_OCI_PORTS="22/tcp 161/tcp 161/udp"
 BR2_TARGET_ROOTFS_OCI_LABELS=".url=https://github.com/kernelkit/curiOS .title=curiOS"
+BR2_PACKAGE_MPING=y
