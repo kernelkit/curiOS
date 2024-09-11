@@ -1,0 +1,4 @@
+# From https://github.com/troglobit/mcjoin/releases
+sha256 0ec72cb333d43c26d947b38059580166f131eafb7b6dccbb6ee619abd4e98670  mcjoin-2.11.tar.gz
+# Locally calculated
+sha256 5a53092ca1b2d81c7291b73622e7b477a17e932736261e3a2b64534b8f4aea13  LICENSE

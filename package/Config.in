@@ -1,4 +1,5 @@
 menu "Networking applications"  
+	source "$BR2_EXTERNAL_CURIOS_PATH/package/mcjoin/Config.in"
 	source "$BR2_EXTERNAL_CURIOS_PATH/package/mping/Config.in"
 	source "$BR2_EXTERNAL_CURIOS_PATH/package/nft-helper/Config.in"
 	source "$BR2_EXTERNAL_CURIOS_PATH/package/openresty/Config.in"
