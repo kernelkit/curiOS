@@ -1,9 +1,13 @@
 #!/bin/sh
 tagline="curiOS -- a slim curated container OS"
 
-for start in S02sysctl S20seedrng S40network S51sysrepo-plugind S52netopeer2; do
+for start in S02sysctl S20seedrng S51sysrepo-plugind S52netopeer2; do
     rm -f "${TARGET_DIR}/etc/init.d/$start"
 done
+
+# We allow S40network but the user must provide the configuration
+# because by default container runtimes manage all networking.
+rm "${TARGET_DIR}/etc/network/interfaces"
 
 if [ -z "$GIT_VERSION" ]; then
     GIT_VERSION=$(git -C "$BR2_EXTERNAL_CURIOS_PATH" describe --always --dirty --tags)
