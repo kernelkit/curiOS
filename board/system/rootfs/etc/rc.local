@@ -1,0 +1,8 @@
+#!/bin/sh
+# This script is executed after all other services have started,
+# but before any login prompt.  Ensure the script calls 'exit 0'
+# on success.
+#
+# Override this with a file mount or volume in your container.
+
+exit 0
