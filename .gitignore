@@ -7,6 +7,7 @@
 /.config.old
 /..config.tmp
 /.config
+local.mk
 *.depend
 *.o
 /*.patch
