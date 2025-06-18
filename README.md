@@ -1,3 +1,5 @@
+<a href="https://www.flaticon.com/free-icons/container"><img align="right" src="doc/container.png" width="200px" alt="Container icons created by smashingstocks - Flaticon"></a>
+
 # curiOS -- a slim curated container OS
 
 curiOS, pronounced curious, is a slim curated base of containers.
