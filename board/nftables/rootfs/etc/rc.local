@@ -1,0 +1,28 @@
+#!/bin/sh
+# Load nft rules at startup and flush at shutdown
+# Edit or mount-over this file to change behavior
+. /etc/os-release
+CONF=/etc/nftables.conf
+
+echo
+echo "curiOS $VERSION (TTY/secure)"
+echo
+echo "> SYSTEM INITIATED"
+
+if [ -f "$CONF" ]; then
+    echo "> Loading ruleset from $CONF ..."
+    if nft -f "$CONF"; then
+        echo "> nftables ruleset loaded"
+	msg="ACTIVE"
+    else
+        echo "> ERROR: failed to parse nftables ruleset"
+        msg="INCOMPLETE -- Manual intervention required!"
+    fi
+else
+    echo "> ERROR: ruleset configuration file not found ($CONF)"
+    msg="STANDBY -- No active firewall!"
+fi
+
+echo "> SYSTEM MONITORING $msg"
+
+exit 0

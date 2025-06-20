@@ -1,0 +1,16 @@
+#!/bin/sh
+# Load nft rules at startup and flush at shutdown
+# Edit or mount-over this file to change behavior
+CONF=/etc/nftables.conf
+
+echo "> SIGNAL RECEIVED"
+
+if [ -f "$CONF" ]; then
+    echo "> Flushing nftables ruleset..."
+    nft flush ruleset
+fi
+
+echo "> SYSTEM HALTED -- Awaiting container shutdown"
+echo
+
+exit 0

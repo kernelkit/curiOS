@@ -1,0 +1,3 @@
+::sysinit:/etc/rc.local
+::shutdown:/etc/rc.shutdown
+::ctrlaltdel:/bin/true
