@@ -9,7 +9,7 @@ on:
   workflow_dispatch:
 
 jobs:
-  supervisor:
+  container:
     permissions:
       packages: write
       contents: write
