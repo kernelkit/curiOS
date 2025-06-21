@@ -1,0 +1,94 @@
+From 09e4f9a964a9f96c09d7ef53d07917dcc4bdf5d7 Mon Sep 17 00:00:00 2001
+From: Joachim Wiberg <troglobit@gmail.com>
+Date: Sat, 21 Jun 2025 03:12:38 +0200
+Subject: [PATCH] init: simplify for container usage
+Organization: Wires
+
+All logging of containers go through stderr to the host's syslog, so we
+do not need any console line cleanup, sleeps for output propagation, or
+extra warnings.
+
+Signed-off-by: Joachim Wiberg <troglobit@gmail.com>
+---
+ init/init.c | 21 ++++-----------------
+ 1 file changed, 4 insertions(+), 17 deletions(-)
+
+diff --git a/init/init.c b/init/init.c
+index 1e1ce833d..d85494450 100644
+--- a/init/init.c
++++ b/init/init.c
+@@ -237,9 +237,8 @@ static void message(int where, const char *fmt, ...)
+ 	unsigned l;
+ 	char msg[128];
+ 
+-	msg[0] = '\r';
+ 	va_start(arguments, fmt);
+-	l = 1 + vsnprintf(msg + 1, sizeof(msg) - 2, fmt, arguments);
++	l = vsnprintf(msg, sizeof(msg) - 2, fmt, arguments);
+ 	if (l > sizeof(msg) - 2)
+ 		l = sizeof(msg) - 2;
+ 	va_end(arguments);
+@@ -735,9 +734,6 @@ static void pause_and_low_level_reboot(unsigned magic)
+ {
+ 	pid_t pid;
+ 
+-	/* Allow time for last message to reach serial console, etc */
+-	sleep1();
+-
+ 	/* We have to fork here, since the kernel calls do_exit(EXIT_SUCCESS)
+ 	 * in linux/kernel/sys.c, which can cause the machine to panic when
+ 	 * the init process exits... */
+@@ -751,7 +747,6 @@ static void pause_and_low_level_reboot(unsigned magic)
+ 	 * we would eternally sleep here - not what we want.
+ 	 */
+ 	waitpid(pid, NULL, 0);
+-	sleep1(); /* paranoia */
+ 	_exit_SUCCESS();
+ }
+ 
+@@ -766,14 +761,11 @@ static void run_shutdown_and_kill_processes(void)
+ 
+ 	/* Send signals to every process _except_ pid 1 */
+ 	kill(-1, SIGTERM);
+-	message(L_CONSOLE, "Sent SIG%s to all processes", "TERM");
+ 	sync();
+ 	sleep1();
+ 
+ 	kill(-1, SIGKILL);
+-	message(L_CONSOLE, "Sent SIG%s to all processes", "KILL");
+ 	sync();
+-	/*sleep1(); - callers take care about making a pause */
+ }
+ 
+ /* Signal handling by init:
+@@ -810,7 +802,6 @@ static void run_shutdown_and_kill_processes(void)
+ static void halt_reboot_pwoff(int sig) NORETURN;
+ static void halt_reboot_pwoff(int sig)
+ {
+-	const char *m;
+ 	unsigned rb;
+ 
+ 	/* We may call run() and it unmasks signals,
+@@ -823,16 +814,12 @@ static void halt_reboot_pwoff(int sig)
+ 
+ 	run_shutdown_and_kill_processes();
+ 
+-	m = "halt";
+ 	rb = RB_HALT_SYSTEM;
+-	if (sig == SIGTERM) {
+-		m = "reboot";
++	if (sig == SIGTERM)
+ 		rb = RB_AUTOBOOT;
+-	} else if (sig == SIGUSR2) {
+-		m = "poweroff";
++	else if (sig == SIGUSR2)
+ 		rb = RB_POWER_OFF;
+-	}
+-	message(L_CONSOLE, "Requesting system %s", m);
++
+ 	pause_and_low_level_reboot(rb);
+ 	/* not reached */
+ }
+-- 
+2.43.0
+
