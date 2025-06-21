@@ -1,6 +1,6 @@
-<a href="https://www.flaticon.com/free-icons/container"><img align="right" src="doc/container.png" width="200px" alt="Container icons created by smashingstocks - Flaticon"></a>
+<a href="https://www.flaticon.com/free-icons/docker"><img align="right" src="doc/container.png" width="200px" alt="Docker icons created by pocike - Flaticon"></a>
 
-# curiOS -- a slim curated container OS
+# curiOS — a slim curated container OS
 
 curiOS, pronounced curious, is a project by the [same team][8] of developers
 that created and maintain the [Infix operating system][7].  If you like the
