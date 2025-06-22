@@ -8,9 +8,5 @@ export VISUAL=/usr/bin/edit
 
 alias vim='vi'
 alias view='vi -R'
-alias emacs='mg'
-alias sensible-editor=edit
-alias sensible-pager=pager
-alias hd="hexdump -C"
 
 alias llping='ping -L ff02::1 -I'
