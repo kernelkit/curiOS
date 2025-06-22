@@ -127,6 +127,7 @@ tinc		655/udp
 silc		706/tcp
 kerberos-adm	749/tcp				# Kerberos `kadmin' (v5)
 #
+netconf		830/tcp				# NETCONF over SSH [RFC6242]
 domain-s	853/tcp				# DNS over TLS [RFC7858]
 domain-s	853/udp				# DNS over DTLS [RFC8094]
 rsync		873/tcp
