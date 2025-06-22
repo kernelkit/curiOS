@@ -20,20 +20,34 @@ compatible runtime.
 
 The [KernelKit AppStore][2] on GHCR provides the following pre-built images.
 
+
 ### [curiOS system][3]
 
-A system container, example of how to run multiple services.  Comes with the
-following services and tools:
+An example system container, shows how to run multiple services.  Comes with
+the following services and tools:
 
+ - BusyBox (full configuration)
  - Dropbear SSH daemon
  - mini-snmpd
  - netopeer-cli
  - nftables
  - ntpd
 
+See this blog post on how to use this container with Infix:
+
+ - [Infix Advanced Container Networking](https://kernelkit.org/posts/advanced-containers/)
+
+
 ### [curiOS ntpd][4]
 
-ISC ntpd supports [multicasting NTP][10] to a subnet.
+This container is only `ntpd`, started by `tini` with `-n -g` flags.  The
+default configuration file is `/etc/ntp.conf`, see `doc/` for a sample.  To
+override use a mount or volume, and remember to also set up a volume for the
+`/var` or `/var/lib` directory to let the daemon save drift data.
+
+ISC ntpd supports [multicasting NTP][10] to a subnet.  For more information
+see the [official ntpd site](https://www.ntp.org/).
+
 
 ### [curiOS nftables][5]
 
@@ -44,11 +58,27 @@ At shutdown `nft flush ruleset` is called.
 This container comes with a minimal set of BusyBox tools, including a shell,
 so the `nftables.conf` file can be modified from inside the container (vi).
 Although the most common use-case is to mount a file from the host system.
+See `doc/` for two samples: end-device and home router.
+
+See this blog post on how to use this container with Infix:
+
+ - [Infix w/ WAN+LAN firewall setup](https://kernelkit.org/posts/firewall-container/)
+
 
 ### [curiOS httpd][6]
 
 Tiny web server container based on BusyBox httpd, suitable for embedding in a
 firmware image as an example container.
+
+The server looks for `/var/www/index.html`, so use a volume on `/var/www` to
+change the default web page.
+
+With a custom command you can also change the default command line, e.g, to
+run in foreground, with verbose mode, on port 8080:
+
+ - `/usr/sbin/httpd -f -v -p 8080`
+
+For more help, see the [BusyBox docs](https://busybox.net/downloads/BusyBox.html#httpd)
 
 
 ## Origin & References
