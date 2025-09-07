@@ -1,0 +1,55 @@
+#
+# Minimal BusyBox configuration for neofetch
+# Only includes essential applets needed for neofetch to function
+#
+CONFIG_HAVE_DOT_CONFIG=y
+
+#
+# Settings
+#
+CONFIG_LONG_OPTS=y
+CONFIG_BUSYBOX=y
+CONFIG_FEATURE_INSTALLER=y
+CONFIG_STATIC=y
+
+#
+# Shell - Required for neofetch script execution
+#
+CONFIG_ASH=y
+CONFIG_ASH_OPTIMIZE_FOR_SIZE=y
+CONFIG_SH_IS_ASH=y
+CONFIG_BASH_IS_NONE=y
+
+#
+# Essential utilities for neofetch system information gathering
+#
+CONFIG_UNAME=y       # Kernel/system info
+CONFIG_CAT=y         # Read files from /proc, /sys
+CONFIG_GREP=y        # Pattern matching
+CONFIG_CUT=y         # Field extraction
+CONFIG_AWK=y         # Text processing
+CONFIG_SED=y         # Text processing  
+CONFIG_HEAD=y        # File content
+CONFIG_TR=y          # Character translation
+CONFIG_PRINTF=y      # Output formatting
+CONFIG_PS=y          # Process information
+CONFIG_READLINK=y    # Link resolution
+CONFIG_BASENAME=y    # Path manipulation
+CONFIG_DIRNAME=y     # Path manipulation
+
+#
+# Disable all non-essential applets
+#
+# CONFIG_DESKTOP is not set
+# CONFIG_EXTRA_COMPAT is not set
+# CONFIG_INCLUDE_SUSv2 is not set
+# CONFIG_SHOW_USAGE is not set
+# CONFIG_FEATURE_VERBOSE_USAGE is not set
+# CONFIG_LFS is not set
+# CONFIG_PAM is not set
+
+# All network utilities disabled
+# All text editors disabled  
+# All system services disabled
+# All archive utilities disabled
+# All filesystem utilities disabled (except basic file ops)

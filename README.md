@@ -32,8 +32,8 @@ functionality.
 
 ---
 
-*curiOS is brought to you by the [same team][8] that created and
-maintains the [Infix operating system][7]. If you like the idea of
+*curiOS is brought to you by the [same team][9] that created and
+maintains the [Infix operating system][8]. If you like the idea of
 modeling an entire OS with YANG, check out Infix!*
 
 ## Ready-to-Use Images
@@ -109,6 +109,26 @@ docker run -p 8080:8080 ghcr.io/kernelkit/curios-httpd /usr/sbin/httpd -f -v -p 
 
 For more help, see the [BusyBox docs](https://busybox.net/downloads/BusyBox.html#httpd)
 
+### [curiOS neofetch][7] 🖼️
+
+**System information at a glance** (~750KB) - Perfect for demos, system
+monitoring, and showing off your container infrastructure. Features:
+
+- **Beautiful ASCII art** - Eye-catching system logos and information display
+- **Comprehensive details** - OS, kernel, uptime, memory, CPU, and more
+- **Container-optimized** - Shows host system info even when containerized
+- **Demo-ready** - Perfect for presentations and system showcases
+
+**Example usage:**
+
+```bash
+# Simple system info display
+docker run --rm ghcr.io/kernelkit/curios-neofetch
+
+# With host system access for accurate info
+docker run --rm -v /etc/os-release:/etc/os-release:ro ghcr.io/kernelkit/curios-neofetch
+```
+
 ## Origin & References
 
 curiOS is a wrapper around [Buildroot][0] for creating container images for
@@ -126,6 +146,7 @@ curiOS is a fork of <https://github.com/brianredbeard/coreos_buildroot>
 [4]: https://github.com/orgs/kernelkit/packages/container/package/curios-ntpd
 [5]: https://github.com/orgs/kernelkit/packages/container/package/curios-nftables
 [6]: https://github.com/orgs/kernelkit/packages/container/package/curios-httpd
-[7]: https://github.com/kernelkit/infix
-[8]: https://kernelkit.org
+[7]: https://github.com/orgs/kernelkit/packages/container/package/curios-neofetch
+[8]: https://github.com/kernelkit/infix
+[9]: https://kernelkit.org
 [10]: https://www.ntp.org/documentation/4.2.8-series/discover/

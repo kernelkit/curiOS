@@ -15,7 +15,7 @@ jobs:
       contents: write
     strategy:
       matrix:
-        app: [system, httpd, ntpd, nftables]
+        app: [system, httpd, ntpd, nftables, neofetch]
     uses: ./.github/workflows/build-push.yml
     with:
       app: ${{ matrix.app }}
