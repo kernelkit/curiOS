@@ -47,9 +47,3 @@ CONFIG_DIRNAME=y     # Path manipulation
 # CONFIG_FEATURE_VERBOSE_USAGE is not set
 # CONFIG_LFS is not set
 # CONFIG_PAM is not set
-
-# All network utilities disabled
-# All text editors disabled  
-# All system services disabled
-# All archive utilities disabled
-# All filesystem utilities disabled (except basic file ops)
