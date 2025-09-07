@@ -21,3 +21,4 @@ BR2_TARGET_ROOTFS_OCI_AUTHOR="curiOS"
 BR2_TARGET_ROOTFS_OCI_TAG="edge"
 BR2_TARGET_ROOTFS_OCI_ENTRYPOINT="/usr/bin/neofetch"
 BR2_TARGET_ROOTFS_OCI_LABELS=".url=https://github.com/kernelkit/curiOS .title=curiOS-neofetch"
+# BR2_TARGET_ROOTFS_TAR is not set
