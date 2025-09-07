@@ -15,7 +15,7 @@ jobs:
       contents: write
     strategy:
       matrix:
-        app: [curios, curios-httpd, curios-ntpd, curios-nftables]
+        app: [system, httpd, ntpd, nftables]
     uses: ./.github/workflows/build-push.yml
     with:
       app: ${{ matrix.app }}

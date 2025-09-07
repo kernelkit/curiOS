@@ -111,9 +111,12 @@ jobs:
           SFX=${{ steps.vars.outputs.sfx }}
           for file in *.tar.gz; do
               fn=$(basename ${file} .tar.gz)
-              name=${fn%-*}
+              app_name=${fn%-*}
               arch=${fn##*-}
-              echo "Found: $name arch: $arch"
+              # Map clean defconfig names to curios-prefixed container names
+              name="curios-${app_name}"
+              [[ "${name}" == "curios-system" ]] && name="curios"
+              echo "Found: $app_name -> $name, arch: $arch"
               tar xf ${file}
               rm -f  ${file}
               mv ${fn}/rootfs-oci ${name}-oci-${arch}${SFX}
@@ -133,7 +136,10 @@ jobs:
       - name: Push image(s)
         run: |
           set -x
-          IMG=${{ inputs.app }}
+          APP=${{ inputs.app }}
+          # Map clean defconfig names to curios-prefixed container names
+          IMG="curios-${APP}"
+          [[ "${IMG}" == "curios-system" ]] && IMG="curios"
           TAG=${{ steps.vars.outputs.tag }}
           SFX=${{ steps.vars.outputs.sfx }}
           URL=ghcr.io/${{ github.repository_owner }}/${IMG}
