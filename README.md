@@ -1,10 +1,10 @@
 <a href="https://www.flaticon.com/free-icons/docker"><img align="right" src="doc/container.png" width="200px" alt="Docker icons created by pocike - Flaticon"></a>
 
-# curiOS — Production-Ready Container Images for Embedded Systems
+# curiOS — slim, curated containers
 
 **Lightweight • Secure • Purpose-Built**
 
-curiOS delivers ultra-slim, curated container images optimized for
+*curiOS* delivers ultra-slim, curated container images optimized for
 embedded and edge computing.  Built on battle-tested [Buildroot][0],
 each image is stripped of unnecessary components while maintaining full
 functionality.
@@ -127,6 +127,9 @@ docker run --rm ghcr.io/kernelkit/curios-neofetch
 
 # With host system access for accurate info
 docker run --rm -v /etc/os-release:/etc/os-release:ro ghcr.io/kernelkit/curios-neofetch
+
+# Get a shell instead
+docker run --rm -i -t --entrypoint /bin/bash ghcr.io/kernelkit/curios-neofetch
 ```
 
 ## Origin & References
