@@ -15,28 +15,25 @@ compatible runtime.
 > any of the slim application containers, because they can be very difficult
 > to debug (none or little tooling in image).
 
-
 ## AppStore
 
 The [KernelKit AppStore][2] on GHCR provides the following pre-built images.
-
 
 ### [curiOS system][3]
 
 An example system container, shows how to run multiple services.  Comes with
 the following services and tools:
 
- - BusyBox (full configuration)
- - Dropbear SSH daemon
- - mini-snmpd
- - netopeer-cli
- - nftables
- - ntpd
+- BusyBox (full configuration)
+- Dropbear SSH daemon
+- mini-snmpd
+- netopeer-cli
+- nftables
+- ntpd
 
 See this blog post on how to use this container with Infix:
 
- - [Infix Advanced Container Networking](https://kernelkit.org/posts/advanced-containers/)
-
+- [Infix Advanced Container Networking](https://kernelkit.org/posts/advanced-containers/)
 
 ### [curiOS ntpd][4]
 
@@ -47,7 +44,6 @@ override use a mount or volume, and remember to also set up a volume for the
 
 ISC ntpd supports [multicasting NTP][10] to a subnet.  For more information
 see the [official ntpd site](https://www.ntp.org/).
-
 
 ### [curiOS nftables][5]
 
@@ -62,8 +58,7 @@ See `doc/` for two samples: end-device and home router.
 
 See this blog post on how to use this container with Infix:
 
- - [Infix w/ WAN+LAN firewall setup](https://kernelkit.org/posts/firewall-container/)
-
+- [Infix w/ WAN+LAN firewall setup](https://kernelkit.org/posts/firewall-container/)
 
 ### [curiOS httpd][6]
 
@@ -76,10 +71,9 @@ change the default web page.
 With a custom command you can also change the default command line, e.g, to
 run in foreground, with verbose mode, on port 8080:
 
- - `/usr/sbin/httpd -f -v -p 8080`
+- `/usr/sbin/httpd -f -v -p 8080`
 
 For more help, see the [BusyBox docs](https://busybox.net/downloads/BusyBox.html#httpd)
-
 
 ## Origin & References
 
@@ -89,7 +83,7 @@ Linux distributions.  It handles the removal of man pages, shared files, and
 many pieces not germane to running on an embedded platform, and, as it turns
 out, containers.
 
-curiOS is a fork of https://github.com/brianredbeard/coreos_buildroot
+curiOS is a fork of <https://github.com/brianredbeard/coreos_buildroot>
 
 [0]: https://buildroot.org
 [1]: https://busybox.net
