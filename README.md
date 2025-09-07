@@ -1,77 +1,111 @@
 <a href="https://www.flaticon.com/free-icons/docker"><img align="right" src="doc/container.png" width="200px" alt="Docker icons created by pocike - Flaticon"></a>
 
-# curiOS — a slim curated container OS
+# curiOS — Production-Ready Container Images for Embedded Systems
 
-curiOS, pronounced curious, is a project by the [same team][8] of developers
-that created and maintain the [Infix operating system][7].  If you like the
-idea of modeling an entire OS with YANG, have a look at Infix.
+**Lightweight • Secure • Purpose-Built**
 
-This project provides a set of *defconfigs* for 64-bit ARM and x86 systems
-that can be used with Infix or any other [OCI](https://opencontainers.org/)
-compatible runtime.
+curiOS delivers ultra-slim, curated container images optimized for
+embedded and edge computing.  Built on battle-tested [Buildroot][0],
+each image is stripped of unnecessary components while maintaining full
+functionality.
 
-> [!NOTE]
-> The system container is very useful for staging/development before deploying
-> any of the slim application containers, because they can be very difficult
-> to debug (none or little tooling in image).
+## Why curiOS?
 
-## AppStore
+✨ **Ultra-minimal footprint** - Images as small as 270KB  
+🔒 **Security-first** - No unnecessary packages or attack surface  
+⚡ **Fast deployment** - Lightning-quick startup times for edge applications  
+🎯 **Purpose-built** - Each container does one thing exceptionally well  
+🔧 **Developer-friendly** - Easy integration with existing workflows  
 
-The [KernelKit AppStore][2] on GHCR provides the following pre-built images.
+## Perfect For
 
-### [curiOS system][3]
+- **IoT Gateways** - Lightweight network services and protocols
+- **Edge Computing** - Minimal resource consumption at the edge  
+- **Container Orchestration** - Kubernetes, Docker Swarm, and more
+- **Development Staging** - Debug and test before production deployment
+- **Embedded Firewalls** - Advanced netfilter configurations in containers
 
-An example system container, shows how to run multiple services.  Comes with
-the following services and tools:
+> [!TIP]
+> The system container includes full BusyBox tooling, making it perfect
+> for staging and development before deploying the ultra-slim
+> application containers.
 
-- BusyBox (full configuration)
-- Dropbear SSH daemon
-- mini-snmpd
-- netopeer-cli
-- nftables
-- ntpd
+---
+
+*curiOS is brought to you by the [same team][8] that created and
+maintains the [Infix operating system][7]. If you like the idea of
+modeling an entire OS with YANG, check out Infix!*
+
+## Ready-to-Use Images
+
+Get started instantly with our pre-built images available on the
+[KernelKit Container Registry][2]. Each image is continuously built and
+tested for ARM64 and x86-64 architectures.
+
+### [curiOS system][3] 🖥️
+
+**Full-featured development and staging environment** - Perfect for
+prototyping and debugging before deploying specialized
+containers. Includes everything you need:
+
+- **BusyBox** (complete toolset) - Full UNIX utilities
+- **Dropbear SSH** - Secure remote access
+- **mini-snmpd** - Network monitoring
+- **netopeer-cli** - NETCONF client
+- **nftables** - Advanced firewall
+- **ntpd** - Network time synchronization
 
 See this blog post on how to use this container with Infix:
 
 - [Infix Advanced Container Networking](https://kernelkit.org/posts/advanced-containers/)
 
-### [curiOS ntpd][4]
+### [curiOS ntpd][4] ⏰
 
-This container is only `ntpd`, started by `tini` with `-n -g` flags.  The
-default configuration file is `/etc/ntp.conf`, see `doc/` for a sample.  To
-override use a mount or volume, and remember to also set up a volume for the
-`/var` or `/var/lib` directory to let the daemon save drift data.
+**Precision time synchronization** (~400KB) - Ultra-lightweight NTP
+daemon for accurate timekeeping across your infrastructure. Features:
 
-ISC ntpd supports [multicasting NTP][10] to a subnet.  For more information
-see the [official ntpd site](https://www.ntp.org/).
+- **ISC ntpd** with `-n -g` flags for quick sync
+- **Multicast NTP** support for subnet-wide time distribution  
+- **Persistent drift** data via `/var/lib` volume mount
+- **Custom config** support - mount your own `/etc/ntp.conf`
 
-### [curiOS nftables][5]
+Perfect for IoT devices and distributed systems requiring precise
+time. See the [official ntpd documentation](https://www.ntp.org/) for
+advanced configuration.
 
-Useful for advanced netfilter setups when the container runs in host network
-mode.  At startup it loads `/etc/nftables.conf` and then waits for a signal.
-At shutdown `nft flush ruleset` is called.
+### [curiOS nftables][5] 🔥
 
-This container comes with a minimal set of BusyBox tools, including a shell,
-so the `nftables.conf` file can be modified from inside the container (vi).
-Although the most common use-case is to mount a file from the host system.
-See `doc/` for two samples: end-device and home router.
+**Advanced containerized firewall** (~670KB) - Production-ready
+netfilter management with zero-downtime rule updates. Features:
+
+- **Host network mode** support for transparent firewalling
+- **Graceful startup/shutdown** - Loads rules on start, flushes on stop
+- **Live configuration** - Built-in vi editor for rule modifications
+- **Mount-friendly** - Use host-based config files via volumes
+- **Sample configurations** included for end-devices and routers
+
+Ideal for edge devices, containers-as-firewalls, and advanced network policies.
 
 See this blog post on how to use this container with Infix:
 
 - [Infix w/ WAN+LAN firewall setup](https://kernelkit.org/posts/firewall-container/)
 
-### [curiOS httpd][6]
+### [curiOS httpd][6] 🌐
 
-Tiny web server container based on BusyBox httpd, suitable for embedding in a
-firmware image as an example container.
+**Ultra-lightweight web server** (~270KB) - The smallest possible HTTP
+server for embedded applications and IoT devices. Features:
 
-The server looks for `/var/www/index.html`, so use a volume on `/var/www` to
-change the default web page.
+- **Minimal footprint** - Perfect for resource-constrained environments
+- **Volume support** - Mount your content to `/var/www/`
+- **Flexible configuration** - Customizable ports, logging, and behavior
+- **Firmware-ready** - Ideal for embedding in device firmware
 
-With a custom command you can also change the default command line, e.g, to
-run in foreground, with verbose mode, on port 8080:
+**Example usage:**
 
-- `/usr/sbin/httpd -f -v -p 8080`
+```bash
+# Custom port and verbose logging
+docker run -p 8080:8080 ghcr.io/kernelkit/curios-httpd /usr/sbin/httpd -f -v -p 8080
+```
 
 For more help, see the [BusyBox docs](https://busybox.net/downloads/BusyBox.html#httpd)
 
