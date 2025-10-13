@@ -59,10 +59,3 @@ includes various upstream components. We track security advisories for:
 
 We appreciate the efforts of the security community to help improve the
 security of curiOS. Thank you for your responsible disclosure.
-
-## Contact
-
-For security concerns that cannot be reported through GitHub:
-
-- Email: security@kernelkit.org
-- Website: https://kernelkit.org
