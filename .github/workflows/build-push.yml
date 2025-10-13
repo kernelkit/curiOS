@@ -122,7 +122,7 @@ jobs:
               mv ${fn}/rootfs-oci ${name}-oci-${arch}${SFX}
               mv ${fn}/COPYING ${name}-oci-${arch}${SFX}/
               rm -rf -- ${name}-oci-${arch}${SFX}/.[!.]*
-              tar cfz ${name}-oci-${arch}${SFX}.tar.gz ${name}-oci-${arch}${SFX}
+              tar cfz ${name}-oci-${arch}${SFX}.tar.gz -C ${name}-oci-${arch}${SFX} .
           done
           ls -la *-oci*${SFX}/
           for file in *.tar.gz; do
