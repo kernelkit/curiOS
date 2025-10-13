@@ -2,6 +2,9 @@
 
 # curiOS — slim, curated containers
 
+[![License: GPL v2](https://img.shields.io/badge/License-GPL%20v2-blue.svg)](https://www.gnu.org/licenses/old-licenses/gpl-2.0.en.html)
+[![GitHub Release](https://img.shields.io/github/v/release/kernelkit/curiOS)](https://github.com/kernelkit/curiOS/releases)
+
 **Lightweight • Secure • Purpose-Built**
 
 *curiOS* delivers ultra-slim, curated container images optimized for
@@ -148,6 +151,101 @@ docker run --rm -v /etc/os-release:/etc/os-release:ro ghcr.io/kernelkit/curios-n
 # Get a shell instead
 docker run --rm -i -t --entrypoint /bin/bash ghcr.io/kernelkit/curios-neofetch:latest
 ```
+
+## Getting Images
+
+### From Container Registry
+
+The easiest way to use curiOS is pulling pre-built images from the
+[KernelKit Container Registry][2]:
+
+```bash
+# Pull the latest stable release
+docker pull ghcr.io/kernelkit/curios-nftables:latest
+
+# Or pull a specific version
+docker pull ghcr.io/kernelkit/curios-nftables:1.2.3
+
+# Or pull the bleeding edge
+docker pull ghcr.io/kernelkit/curios-nftables:edge
+```
+
+### From Release Tarballs
+
+Alternatively, download OCI tarballs from [GitHub Releases](https://github.com/kernelkit/curiOS/releases)
+and load them with `podman` or `docker`:
+
+```bash
+# Download release tarball
+wget https://github.com/kernelkit/curiOS/releases/download/v1.2.3/curios-nftables-oci-amd64-v1.2.3.tar.gz
+
+# Extract and load with podman
+tar xzf curios-nftables-oci-amd64-v1.2.3.tar.gz
+cd curios-nftables-oci-amd64-v1.2.3
+podman load < index.json
+
+# Or with docker
+docker load < index.json
+```
+
+This method is useful for air-gapped environments or when you want to verify
+the tarball checksum before loading.
+
+## Building from Source
+
+curiOS uses [Buildroot][0] as its build system. To build a container from source:
+
+### Prerequisites
+
+- Linux build system (Ubuntu, Debian, Fedora, etc.)
+- Standard development tools: `gcc`, `make`, `git`
+- At least 4GB of free disk space
+
+### Build Steps
+
+```bash
+# Clone the repository
+git clone https://github.com/kernelkit/curiOS.git
+cd curiOS
+git submodule update --init --recursive
+
+# Configure for your target (e.g., nftables for amd64)
+make nftables_amd64_defconfig
+
+# Build (this will take a while on first run)
+make
+
+# The resulting OCI image will be in output/images/
+cd output/images
+ls -lh rootfs-oci/
+
+# Load into podman or docker
+podman load < rootfs-oci
+```
+
+### Available Containers
+
+You can build any of these containers by replacing `nftables` in the commands above:
+
+- `system` - Full-featured development environment
+- `ntpd` - NTP time synchronization
+- `nftables` - Firewall container
+- `httpd` - Lightweight web server
+- `neofetch` - System information display
+
+Each container supports both `amd64` and `arm64` architectures (e.g.,
+`nftables_amd64_defconfig` or `nftables_arm64_defconfig`).
+
+### Customizing Containers
+
+To customize a container:
+
+1. Start with an existing defconfig: `make nftables_amd64_defconfig`
+2. Modify the configuration: `make menuconfig`
+3. Save your changes: `make savedefconfig`
+4. Build: `make`
+
+For more details, see [CONTRIBUTING.md](.github/CONTRIBUTING.md).
 
 ## Origin & References
 
