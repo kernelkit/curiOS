@@ -5,6 +5,18 @@ CONF=/etc/nftables.conf
 
 echo "> SIGNAL RECEIVED"
 
+# Disable interfaces if they were enabled via environment variable
+if [ -n "$ENABLE_INTERFACES" ]; then
+    echo "> Disabling interfaces: $ENABLE_INTERFACES"
+    for iface in $ENABLE_INTERFACES; do
+        if ip link set dev "$iface" down 2>/dev/null; then
+            echo ">   Interface $iface brought down"
+        else
+            echo ">   WARNING: Failed to bring down interface $iface"
+        fi
+    done
+fi
+
 if [ -f "$CONF" ]; then
     echo "> Flushing nftables ruleset..."
     nft flush ruleset

@@ -83,8 +83,25 @@ netfilter management with zero-downtime rule updates. Features:
 - **Live configuration** - Built-in vi editor for rule modifications
 - **Mount-friendly** - Use host-based config files via volumes
 - **Sample configurations** included for end-devices and routers
+- **Interface management** - Automatically bring up/down interfaces via `ENABLE_INTERFACES`
 
 Ideal for edge devices, containers-as-firewalls, and advanced network policies.
+
+**Environment variables:**
+
+- `ENABLE_INTERFACES` - Space-separated list of network interfaces
+  (e.g., `"e1 e24"`) to bring up on startup, after the firewall rules
+  have been applied, and take down on shutdown before disabling the
+  firewall
+
+**Example usage:**
+
+```bash
+# Start with automatic interface management
+docker run --network=host -e ENABLE_INTERFACES="e1 e24" \
+  -v /path/to/nftables.conf:/etc/nftables.conf:ro \
+  ghcr.io/kernelkit/curios-nftables:latest
+```
 
 See this blog post on how to use this container with Infix:
 

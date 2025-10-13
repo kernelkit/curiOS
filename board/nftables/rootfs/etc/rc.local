@@ -23,6 +23,18 @@ else
     msg="STANDBY -- No active firewall!"
 fi
 
+# Enable interfaces if specified via environment variable
+if [ -n "$ENABLE_INTERFACES" ]; then
+    echo "> Enabling interfaces: $ENABLE_INTERFACES"
+    for iface in $ENABLE_INTERFACES; do
+        if ip link set dev "$iface" up 2>/dev/null; then
+            echo ">   Interface $iface brought up"
+        else
+            echo ">   WARNING: Failed to bring up interface $iface"
+        fi
+    done
+fi
+
 echo "> SYSTEM MONITORING $msg"
 
 exit 0
