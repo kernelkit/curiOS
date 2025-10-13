@@ -104,7 +104,7 @@ server for embedded applications and IoT devices. Features:
 
 ```bash
 # Custom port and verbose logging
-docker run -p 8080:8080 ghcr.io/kernelkit/curios-httpd /usr/sbin/httpd:edge -f -v -p 8080
+docker run -p 8080:8080 ghcr.io/kernelkit/curios-httpd:latest /usr/sbin/httpd -f -v -p 8080
 ```
 
 For more help, see the [BusyBox docs](https://busybox.net/downloads/BusyBox.html#httpd)
@@ -123,13 +123,13 @@ monitoring, and showing off your container infrastructure. Features:
 
 ```bash
 # Simple system info display
-docker run --rm ghcr.io/kernelkit/curios-neofetch:edge
+docker run --rm ghcr.io/kernelkit/curios-neofetch:latest
 
 # With host system access for accurate info
-docker run --rm -v /etc/os-release:/etc/os-release:ro ghcr.io/kernelkit/curios-neofetch:edge
+docker run --rm -v /etc/os-release:/etc/os-release:ro ghcr.io/kernelkit/curios-neofetch:latest
 
 # Get a shell instead
-docker run --rm -i -t --entrypoint /bin/bash ghcr.io/kernelkit/curios-neofetch:edge
+docker run --rm -i -t --entrypoint /bin/bash ghcr.io/kernelkit/curios-neofetch:latest
 ```
 
 ## Origin & References

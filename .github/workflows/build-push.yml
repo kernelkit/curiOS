@@ -142,11 +142,16 @@ jobs:
           [[ "${IMG}" == "curios-system" ]] && IMG="curios"
           TAG=${{ steps.vars.outputs.tag }}
           SFX=${{ steps.vars.outputs.sfx }}
+          LAT=${{ steps.vars.outputs.lat }}
           URL=ghcr.io/${{ github.repository_owner }}/${IMG}
           buildah manifest create ${IMG}
           buildah manifest add ${IMG} oci:${IMG}-oci-amd64${SFX}
           buildah manifest add ${IMG} oci:${IMG}-oci-arm64${SFX}
           buildah manifest push --all -f oci ${IMG} docker://${URL}:${TAG}
+          # Also push as :latest for stable releases
+          if [[ "${LAT}" == "true" ]]; then
+            buildah manifest push --all -f oci ${IMG} docker://${URL}:latest
+          fi
       - uses: ncipollo/release-action@v1
         with:
           allowUpdates: true
