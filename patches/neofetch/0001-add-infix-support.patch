@@ -1,7 +1,10 @@
-Add Infix ASCII art support and adjust default info sets
+Add Infix and curiOS ASCII art support and adjust default info sets
 
-This patch adds Infix OS ASCII art and disables some info sets
-from the default output while enabling others.
+This patch adds Infix/curiOS ASCII art (Jacky the Jack!) and disables
+some info sets from the default output while enabling others.
+
+Both Infix and curiOS use the same logo since curiOS is built by the
+same team at KernelKit.
 
 Signed-off-by: Joachim Wiberg <troglobit@gmail.com>
 
@@ -67,22 +70,21 @@ Signed-off-by: Joachim Wiberg <troglobit@gmail.com>
  
  
  # Distro
-@@ -7435,6 +7435,21 @@
+@@ -7435,6 +7435,20 @@
  EOF
          ;;
- 
-+        "Infix"*)
+
++        "Infix"*|"curiOS"*)
 +            set_colors 4 3
 +            read -rd '' ascii_data <<'EOF'
 +${c1}  .---------------.
 +${c1}  |               |
-+${c1}  |     ${c2}•   •${c1}     |
++${c1}  |     ${c2}*   *${c1}     |
 +${c1}  |       V       |
 +${c1}  |---.       .---|
-+${c1}  |${c2}▒▒▒${c1}|       |${c2}▒▒▒${c1}|
++${c1}  |${c2}###${c1}|       |${c2}###${c1}|
 +${c1}  '---'-------'---'
 +${c2}  Hi, I'm Jacky! :)
-+
 +EOF
 +        ;;
 +
