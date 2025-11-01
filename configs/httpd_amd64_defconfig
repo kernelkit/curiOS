@@ -23,5 +23,5 @@ BR2_TARGET_ROOTFS_OCI_ENTRYPOINT="/usr/bin/tini --"
 BR2_TARGET_ROOTFS_OCI_CMD="/usr/sbin/httpd -f -v"
 BR2_TARGET_ROOTFS_OCI_WORKDIR="/var/www"
 BR2_TARGET_ROOTFS_OCI_PORTS="80/tcp"
-BR2_TARGET_ROOTFS_OCI_LABELS=".url=https://github.com/kernelkit/curiOS .title=curiOS-httpd"
+BR2_TARGET_ROOTFS_OCI_LABELS=".url=https://github.com/kernelkit/curiOS .title=curiOS-httpd .description=Ultra-lightweight⠀BusyBox⠀web⠀server⠀for⠀embedded⠀applications⠀and⠀IoT⠀devices."
 # BR2_TARGET_ROOTFS_TAR is not set

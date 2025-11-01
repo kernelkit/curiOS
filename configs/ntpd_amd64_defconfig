@@ -26,5 +26,5 @@ BR2_TARGET_ROOTFS_OCI_TAG="curios-ntpd"
 BR2_TARGET_ROOTFS_OCI_ENTRYPOINT="/usr/bin/tini --"
 BR2_TARGET_ROOTFS_OCI_CMD="/usr/sbin/ntpd -n -g"
 BR2_TARGET_ROOTFS_OCI_PORTS="123/udp"
-BR2_TARGET_ROOTFS_OCI_LABELS=".url=https://github.com/kernelkit/curiOS .title=curiOS-ntpd"
+BR2_TARGET_ROOTFS_OCI_LABELS=".url=https://github.com/kernelkit/curiOS .title=curiOS-ntpd .description=Precision⠀time⠀synchronization⠀daemon."
 # BR2_TARGET_ROOTFS_TAR is not set

@@ -24,5 +24,5 @@ BR2_TARGET_ROOTFS_OCI=y
 BR2_TARGET_ROOTFS_OCI_AUTHOR="curiOS"
 BR2_TARGET_ROOTFS_OCI_TAG="curios-nftables"
 BR2_TARGET_ROOTFS_OCI_ENTRYPOINT="/sbin/init"
-BR2_TARGET_ROOTFS_OCI_LABELS=".url=https://github.com/kernelkit/curiOS .title=curiOS-nftables"
+BR2_TARGET_ROOTFS_OCI_LABELS=".url=https://github.com/kernelkit/curiOS .title=curiOS-nftables .description=Advanced⠀containerized⠀firewall⠀with⠀netfilter⠀and⠀interface⠀management."
 # BR2_TARGET_ROOTFS_TAR is not set
