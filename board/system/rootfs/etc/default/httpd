@@ -1,0 +1,4 @@
+# BusyBox httpd startup options.
+# -f: run in foreground (start-stop-daemon handles backgrounding)
+# -c: config file (sets document root, MIME types, ACLs, etc.)
+HTTPD_ARGS="-f -c /etc/httpd.conf"
