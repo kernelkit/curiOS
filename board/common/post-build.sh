@@ -9,16 +9,8 @@ done
 # because by default container runtimes manage all networking.
 rm "${TARGET_DIR}/etc/network/interfaces"
 
-if [ -z "$GIT_VERSION" ]; then
-    GIT_VERSION=$(git -C "$BR2_EXTERNAL_CURIOS_PATH" describe --always --dirty --tags)
-fi
-
-# Override VERSION in /etc/os-release and filenames for release builds
-if [ -n "$RELEASE" ]; then
-    VERSION="$RELEASE"
-else
-    VERSION=$GIT_VERSION
-fi
+VERSION="${CURIOS_VERSION}"
+GIT_VERSION="${CURIOS_BUILD_ID}"
 
 # Buildroot original remain in /usr/lib/os-release
 rm "${TARGET_DIR}/etc/os-release"
