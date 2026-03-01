@@ -12,9 +12,11 @@ rm "${TARGET_DIR}/etc/network/interfaces"
 VERSION="${CURIOS_VERSION}"
 GIT_VERSION="${CURIOS_BUILD_ID}"
 
-# Buildroot original remain in /usr/lib/os-release
-rm "${TARGET_DIR}/etc/os-release"
-cat <<-EOF >"${TARGET_DIR}/etc/os-release"
+# Overwrite Buildroot's /usr/lib/os-release with curiOS content.
+# /etc/os-release is a symlink -> ../usr/lib/os-release, so it keeps
+# resolving correctly even when /etc is volume-mounted and the image
+# is upgraded underneath it.
+cat <<-EOF >"${TARGET_DIR}/usr/lib/os-release"
 	NAME="curiOS"
 	ID=curios
 	PRETTY_NAME="$tagline $VERSION"
@@ -27,6 +29,8 @@ cat <<-EOF >"${TARGET_DIR}/etc/os-release"
 	VENDOR_HOME="https://github.com/kernelkit"
 	SUPPORT_URL="mailto:kernelkit@googlegroups.com"
 EOF
+ln -sf ../usr/lib/os-release "${TARGET_DIR}/etc/os-release"
 
-echo "$tagline $VERSION — $(date +"%b %e %H:%M %Z %Y")" > "$TARGET_DIR/etc/version"
+echo "$tagline $VERSION — $(date +"%b %e %H:%M %Z %Y")" > "$TARGET_DIR/usr/lib/version"
+ln -sf ../usr/lib/version "$TARGET_DIR/etc/version"
 ln -sf version "$TARGET_DIR/etc/motd"
