@@ -45,5 +45,5 @@ CONFIG_DIRNAME=y     # Path manipulation
 # CONFIG_INCLUDE_SUSv2 is not set
 # CONFIG_SHOW_USAGE is not set
 # CONFIG_FEATURE_VERBOSE_USAGE is not set
-# CONFIG_LFS is not set
+CONFIG_LFS=y
 # CONFIG_PAM is not set
