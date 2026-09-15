@@ -1,0 +1,7 @@
+{
+  "Test": ["CMD-SHELL", "test -n \"$(nft list ruleset)\""],
+  "Interval": 30000000000,
+  "Timeout": 5000000000,
+  "StartPeriod": 2000000000,
+  "Retries": 3
+}

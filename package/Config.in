@@ -1,4 +1,8 @@
-menu "Networking applications"  
+menu "curiOS"
+	source "$BR2_EXTERNAL_CURIOS_PATH/package/curios-health/Config.in"
+endmenu
+
+menu "Networking applications"
 	source "$BR2_EXTERNAL_CURIOS_PATH/package/mcjoin/Config.in"
 	source "$BR2_EXTERNAL_CURIOS_PATH/package/mping/Config.in"
 	source "$BR2_EXTERNAL_CURIOS_PATH/package/nft-helper/Config.in"

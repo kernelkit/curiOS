@@ -1,0 +1,7 @@
+{
+  "Test": ["CMD", "/usr/libexec/curios/curios-health", "-q", "udp:123"],
+  "Interval": 30000000000,
+  "Timeout": 5000000000,
+  "StartPeriod": 5000000000,
+  "Retries": 3
+}

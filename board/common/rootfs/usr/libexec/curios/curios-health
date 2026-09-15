@@ -1,0 +1,90 @@
+#!/bin/sh
+# curios-health -- container health probe
+#
+# Same interface as the C implementation in src/health/, which is for
+# images with no shell.  Where there is a shell this costs 1 kB instead
+# of the ~96 kB a static uClibc binary costs, and uses only ash
+# builtins, so it works in the smallest BusyBox configurations.
+#
+#   curios-health [-q] CHECK ...
+#
+#   tcp:PORT   a socket is listening on TCP PORT
+#   udp:PORT   a socket is bound to UDP PORT
+#   proc:NAME  a process named NAME is running
+#   file:PATH  PATH exists
+
+quiet=0
+[ "$1" = "-q" ] && { quiet=1; shift; }
+
+usage()
+{
+	echo "Usage: curios-health [-q] CHECK ..."
+	echo
+	echo "  tcp:PORT   a socket is listening on TCP PORT"
+	echo "  udp:PORT   a socket is bound to UDP PORT"
+	echo "  proc:NAME  a process named NAME is running"
+	echo "  file:PATH  PATH exists"
+}
+
+case "$1" in
+	""|-h|--help) usage; [ -n "$1" ] && exit 0; exit 1 ;;
+esac
+
+moan()
+{
+	[ "$quiet" = 1 ] || echo "curios-health: $*" >&2
+}
+
+# /proc/net/{tcp,udp}{,6}:  sl  local_address rem_address st ...
+# The port is the hex after the colon of the local address; listening
+# TCP is state 0A, while a bound UDP socket simply being in the table
+# is the answer.
+listening()
+{
+	proto=$1
+	hex=$(printf '%04X' "$2")
+
+	for tbl in "/proc/net/$proto" "/proc/net/${proto}6"; do
+		[ -r "$tbl" ] || continue
+		while read -r sl local rem st rest; do
+			[ "$sl" = "sl" ] && continue
+			case "$local" in
+				*:"$hex") ;;
+				*) continue ;;
+			esac
+			[ "$proto" = "udp" ] && return 0
+			[ "$st" = "0A" ] && return 0
+		done < "$tbl"
+	done
+
+	return 1
+}
+
+running()
+{
+	for comm in /proc/[0-9]*/comm; do
+		[ -r "$comm" ] || continue
+		read -r name < "$comm" || continue
+		[ "$name" = "$1" ] && return 0
+	done
+
+	return 1
+}
+
+rc=0
+for spec; do
+	arg=${spec#*:}
+	ok=1
+
+	case "$spec" in
+		tcp:*)  listening tcp "$arg" || ok=0 ;;
+		udp:*)  listening udp "$arg" || ok=0 ;;
+		proc:*) running "$arg"       || ok=0 ;;
+		file:*) [ -e "$arg" ]        || ok=0 ;;
+		*)      moan "unknown check $spec"; rc=1; continue ;;
+	esac
+
+	[ "$ok" = 1 ] || { moan "FAILED $spec"; rc=1; }
+done
+
+exit $rc

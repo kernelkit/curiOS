@@ -1,0 +1,8 @@
+config BR2_PACKAGE_CURIOS_HEALTH
+	bool "curios-health"
+	help
+	  Container health probe.  Reports whether a service holds the
+	  socket it is supposed to hold, by reading /proc directly, so
+	  it works in images that have no shell.
+
+	  Installed as /usr/libexec/curios/curios-health.
