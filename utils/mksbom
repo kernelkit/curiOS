@@ -1,0 +1,333 @@
+#!/usr/bin/env python3
+"""Generate SPDX and CycloneDX SBOMs from Buildroot's legal-info manifest.
+
+Buildroot already knows every package that went into the rootfs, its
+version, its license, and where its source came from.  'make legal-info'
+writes that to legal-info/manifest.csv.  This turns it into the two
+machine-readable formats the CRA technical documentation asks for.
+"""
+import argparse
+import csv
+import datetime
+import hashlib
+import json
+import os
+import re
+import sys
+import uuid
+
+# Buildroot carries a number of license identifiers that SPDX has since
+# deprecated.  Emitting the deprecated form makes validators complain.
+SPDX_RENAMES = {
+    "AGPL-1.0+":     "AGPL-1.0-or-later",
+    "AGPL-3.0+":     "AGPL-3.0-or-later",
+    "AGPL-3.0":      "AGPL-3.0-only",
+    "GFDL-1.1+":     "GFDL-1.1-or-later",
+    "GFDL-1.2+":     "GFDL-1.2-or-later",
+    "GFDL-1.3+":     "GFDL-1.3-or-later",
+    "GPL-1.0+":      "GPL-1.0-or-later",
+    "GPL-2.0+":      "GPL-2.0-or-later",
+    "GPL-2.0":       "GPL-2.0-only",
+    "GPL-3.0+":      "GPL-3.0-or-later",
+    "GPL-3.0":       "GPL-3.0-only",
+    "LGPL-2.0+":     "LGPL-2.0-or-later",
+    "LGPL-2.0":      "LGPL-2.0-only",
+    "LGPL-2.1+":     "LGPL-2.1-or-later",
+    "LGPL-2.1":      "LGPL-2.1-only",
+    "LGPL-3.0+":     "LGPL-3.0-or-later",
+    "LGPL-3.0":      "LGPL-3.0-only",
+    "BSD-2-Clause-FreeBSD": "BSD-2-Clause-Views",
+    "Nunit":         "MS-PL",
+    "eCos-2.0":      "GPL-2.0-or-later WITH eCos-exception-2.0",
+    "wxWindows":     "WxWindows-exception-3.1",
+}
+
+# The official SPDX license list, so that an identifier Buildroot carries
+# but SPDX does not know (bzip2-1.0.4, say) becomes a LicenseRef instead of
+# an expression that every validator rejects.
+SPDX_DATA = os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                         "spdx-licenses.json")
+SPDX_OPERATORS = {"AND", "OR", "WITH"}
+
+
+def load_spdx_ids():
+    try:
+        with open(SPDX_DATA, encoding="utf-8") as fh:
+            d = json.load(fh)
+        return set(d["licenseIds"]), set(d["exceptionIds"])
+    except (OSError, ValueError, KeyError) as err:
+        sys.stderr.write("WARNING: cannot read %s (%s), "
+                         "license identifiers will not be validated\n"
+                         % (SPDX_DATA, err))
+        return None, None
+
+
+LICENSE_IDS, EXCEPTION_IDS = load_spdx_ids()
+
+
+# LicenseRef identifiers must be declared in hasExtractedLicensingInfos,
+# so remember the original text each one stands for.
+LICENSE_REFS = {}
+
+
+def license_ref(tok):
+    ref = "LicenseRef-" + re.sub(r"[^A-Za-z0-9.-]", "-", tok)
+    LICENSE_REFS.setdefault(ref, tok)
+    return ref
+
+
+def spdx_license(raw):
+    """Best-effort conversion of a Buildroot license field to an SPDX expression."""
+    raw = (raw or "").strip()
+    if not raw or raw.lower() in ("unknown", "not saved"):
+        return "NOASSERTION"
+
+    # Buildroot separates multiple licenses with commas, meaning "and".
+    parts = [p.strip() for p in raw.split(",") if p.strip()]
+    out = []
+    for part in parts:
+        toks = part.split()
+        # A valid expression alternates operand, operator, operand ...
+        # Free text such as "Some Custom Thing" does not, and has to be
+        # carried as a single LicenseRef rather than three bogus ones.
+        shape_ok = len(toks) % 2 == 1 and all(
+            (t.upper() in SPDX_OPERATORS) == (i % 2 == 1)
+            for i, t in enumerate(toks))
+        if not shape_ok:
+            out.append(license_ref(part))
+            continue
+
+        norm = []
+        expect_exception = False
+        for tok in toks:
+            if tok.upper() in SPDX_OPERATORS:
+                norm.append(tok.upper())
+                expect_exception = tok.upper() == "WITH"
+                continue
+
+            known = EXCEPTION_IDS if expect_exception else LICENSE_IDS
+            if not expect_exception:
+                tok = SPDX_RENAMES.get(tok, tok)
+            if known is not None and tok not in known:
+                # A trailing '+' means "or later"; SPDX spells that out.
+                base = SPDX_RENAMES.get(tok.rstrip("+"), tok.rstrip("+"))
+                if tok.endswith("+") and base in known:
+                    tok = base
+                else:
+                    tok = license_ref(tok)
+            norm.append(tok)
+            expect_exception = False
+
+        out.append(" ".join(norm))
+
+    if not out:
+        return "NOASSERTION"
+    if len(out) == 1:
+        return out[0]
+    return " AND ".join("(%s)" % o if " " in o else o for o in out)
+
+
+def purl(name, version, site, archive):
+    """Package URL.  Buildroot builds from source tarballs, so pkg:generic."""
+    p = "pkg:generic/%s" % name
+    if version and version != "not saved":
+        p += "@%s" % version
+    if site and archive and site not in ("not saved", ""):
+        p += "?download_url=%s/%s" % (site.rstrip("/"), archive)
+    return p
+
+
+def read_manifest(path):
+    pkgs = []
+    with open(path, newline="", encoding="utf-8") as fh:
+        for row in csv.DictReader(fh):
+            name = (row.get("PACKAGE") or "").strip()
+            if not name:
+                continue
+            pkgs.append({
+                "name":    name,
+                "version": (row.get("VERSION") or "").strip(),
+                "license": (row.get("LICENSE") or "").strip(),
+                "archive": (row.get("SOURCE ARCHIVE") or "").strip(),
+                "site":    (row.get("SOURCE SITE") or "").strip(),
+            })
+    return sorted(pkgs, key=lambda p: p["name"])
+
+
+def spdx_id(name):
+    return "SPDXRef-Package-" + re.sub(r"[^A-Za-z0-9.-]", "-", name)
+
+
+def gen_spdx(pkgs, meta):
+    root = "SPDXRef-Package-" + re.sub(r"[^A-Za-z0-9.-]", "-", meta["image"])
+    doc = {
+        "spdxVersion": "SPDX-2.3",
+        "dataLicense": "CC0-1.0",
+        "SPDXID": "SPDXRef-DOCUMENT",
+        "name": "%s-%s" % (meta["image"], meta["version"]),
+        "documentNamespace": "https://github.com/kernelkit/curiOS/sbom/%s-%s-%s" % (
+            meta["image"], meta["version"], meta["uuid"]),
+        "creationInfo": {
+            "created": meta["created"],
+            "creators": ["Tool: curios-mksbom", "Organization: KernelKit"],
+        },
+        "packages": [],
+        "hasExtractedLicensingInfos": [],
+        "relationships": [
+            {"spdxElementId": "SPDXRef-DOCUMENT",
+             "relationshipType": "DESCRIBES",
+             "relatedSpdxElement": root},
+        ],
+    }
+
+    doc["packages"].append({
+        "SPDXID": root,
+        "name": meta["image"],
+        "versionInfo": meta["version"],
+        "downloadLocation": "https://github.com/kernelkit/curiOS",
+        "filesAnalyzed": False,
+        "licenseConcluded": "NOASSERTION",
+        "licenseDeclared": "NOASSERTION",
+        "copyrightText": "NOASSERTION",
+        "supplier": "Organization: KernelKit",
+        "primaryPackagePurpose": "CONTAINER",
+        "externalRefs": [{
+            "referenceCategory": "PACKAGE-MANAGER",
+            "referenceType": "purl",
+            "referenceLocator": "pkg:oci/%s@%s?arch=%s" % (
+                meta["image"], meta["version"], meta["arch"]),
+        }],
+    })
+
+    for p in pkgs:
+        lic = spdx_license(p["license"])
+        entry = {
+            "SPDXID": spdx_id(p["name"]),
+            "name": p["name"],
+            "versionInfo": p["version"] or "NOASSERTION",
+            "downloadLocation": "%s/%s" % (p["site"].rstrip("/"), p["archive"])
+                if p["site"] and p["archive"] and p["site"] != "not saved"
+                else "NOASSERTION",
+            "filesAnalyzed": False,
+            "licenseConcluded": "NOASSERTION",
+            "licenseDeclared": lic,
+            "copyrightText": "NOASSERTION",
+            "externalRefs": [{
+                "referenceCategory": "PACKAGE-MANAGER",
+                "referenceType": "purl",
+                "referenceLocator": purl(p["name"], p["version"],
+                                         p["site"], p["archive"]),
+            }],
+        }
+        doc["packages"].append(entry)
+        doc["relationships"].append({
+            "spdxElementId": root,
+            "relationshipType": "CONTAINS",
+            "relatedSpdxElement": entry["SPDXID"],
+        })
+
+    doc["hasExtractedLicensingInfos"] = [
+        {"licenseId": ref, "name": text, "extractedText": text}
+        for ref, text in sorted(LICENSE_REFS.items())
+    ]
+
+    return doc
+
+
+def gen_cyclonedx(pkgs, meta):
+    def component(p):
+        lic = spdx_license(p["license"])
+        c = {
+            "type": "library",
+            "bom-ref": purl(p["name"], p["version"], p["site"], p["archive"]),
+            "name": p["name"],
+            "purl": purl(p["name"], p["version"], p["site"], p["archive"]),
+        }
+        if p["version"]:
+            c["version"] = p["version"]
+        if lic != "NOASSERTION":
+            c["licenses"] = [{"expression": lic}]
+        if p["site"] and p["archive"] and p["site"] != "not saved":
+            c["externalReferences"] = [{
+                "type": "distribution",
+                "url": "%s/%s" % (p["site"].rstrip("/"), p["archive"]),
+            }]
+        return c
+
+    return {
+        "bomFormat": "CycloneDX",
+        "specVersion": "1.6",
+        "serialNumber": "urn:uuid:%s" % meta["uuid"],
+        "version": 1,
+        "metadata": {
+            "timestamp": meta["created"],
+            "tools": {"components": [{
+                "type": "application",
+                "name": "curios-mksbom",
+                "manufacturer": {"name": "KernelKit"},
+            }]},
+            "component": {
+                "type": "container",
+                "bom-ref": "pkg:oci/%s@%s" % (meta["image"], meta["version"]),
+                "name": meta["image"],
+                "version": meta["version"],
+                "purl": "pkg:oci/%s@%s?arch=%s" % (
+                    meta["image"], meta["version"], meta["arch"]),
+            },
+            "manufacturer": {"name": "KernelKit",
+                             "url": ["https://kernelkit.org"]},
+        },
+        "components": [component(p) for p in pkgs],
+    }
+
+
+def main():
+    ap = argparse.ArgumentParser(description=__doc__)
+    ap.add_argument("--manifest", required=True,
+                    help="Buildroot legal-info/manifest.csv")
+    ap.add_argument("--image", required=True, help="container image name")
+    ap.add_argument("--version", required=True, help="image version")
+    ap.add_argument("--arch", default="", help="image architecture")
+    ap.add_argument("--outdir", required=True, help="where to write SBOMs")
+    args = ap.parse_args()
+
+    pkgs = read_manifest(args.manifest)
+    if not pkgs:
+        sys.exit("ERROR: no packages in %s" % args.manifest)
+
+    # Derive the document UUID from the manifest so rebuilding the same
+    # image twice yields the same SBOM.
+    with open(args.manifest, "rb") as fh:
+        digest = hashlib.sha256(fh.read()).digest()
+    meta = {
+        "image":   args.image,
+        "version": args.version,
+        "arch":    args.arch,
+        "uuid":    str(uuid.UUID(bytes=digest[:16], version=4)),
+        "created": os.environ.get("SOURCE_DATE_EPOCH")
+                   and datetime.datetime.fromtimestamp(
+                       int(os.environ["SOURCE_DATE_EPOCH"]),
+                       datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+                   or datetime.datetime.now(
+                       datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+    }
+
+    os.makedirs(args.outdir, exist_ok=True)
+    base = "%s-%s" % (args.image, args.arch) if args.arch else args.image
+
+    spdx = os.path.join(args.outdir, "%s.spdx.json" % base)
+    cdx = os.path.join(args.outdir, "%s.cdx.json" % base)
+    with open(spdx, "w", encoding="utf-8") as fh:
+        json.dump(gen_spdx(pkgs, meta), fh, indent=2, sort_keys=False)
+        fh.write("\n")
+    with open(cdx, "w", encoding="utf-8") as fh:
+        json.dump(gen_cyclonedx(pkgs, meta), fh, indent=2, sort_keys=False)
+        fh.write("\n")
+
+    print("SBOM: %d packages" % len(pkgs))
+    print("  SPDX 2.3      : %s" % spdx)
+    print("  CycloneDX 1.6 : %s" % cdx)
+
+
+if __name__ == "__main__":
+    main()

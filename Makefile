@@ -7,6 +7,11 @@ O    ?= $(CURDIR)/output
 config := $(O)/.config
 bmake   = $(MAKE) -C buildroot O=$(O) $1
 
+# Read a symbol out of the generated .config, stripping the quotes
+brvar   = $(shell sed -n 's/^$1="\(.*\)"/\1/p' $(config) 2>/dev/null)
+
+VERSION ?= $(shell git -C $(CURDIR) describe --dirty --always --tags 2>/dev/null)
+
 
 all: $(config) buildroot/Makefile
 	@+$(call bmake,$@)
@@ -19,10 +24,25 @@ $(config):
 	@exit 1
 
 
+# Software Bill of Materials, in both formats the CRA technical
+# documentation is likely to be asked for.  Requires every source
+# tarball, so it downloads what the build has not already fetched.
+sbom: $(config) buildroot/Makefile
+	@+$(call bmake,legal-info)
+	@$(CURDIR)/utils/mksbom							\
+		--manifest $(O)/legal-info/manifest.csv				\
+		--image    "$(call brvar,BR2_TARGET_ROOTFS_OCI_TAG)"		\
+		--version  "$(VERSION)"						\
+		--arch     "$(call brvar,BR2_NORMALIZED_ARCH)"			\
+		--outdir   $(O)/images/sbom
+	@cp $(O)/legal-info/manifest.csv $(O)/images/sbom/
+	@echo "  License manifest : $(O)/images/sbom/manifest.csv"
+	@echo "  Complete source  : $(O)/legal-info/sources/"
+
 %: | buildroot/Makefile
 	@+$(call bmake,$@)
 
 buildroot/Makefile:
 	@git submodule update --init
 
-.PHONY: all
+.PHONY: all sbom
