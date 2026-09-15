@@ -35,8 +35,9 @@ sbom: $(config) buildroot/Makefile
 		--version  "$(VERSION)"						\
 		--arch     "$(call brvar,BR2_NORMALIZED_ARCH)"			\
 		--outdir   $(O)/images/sbom
-	@cp $(O)/legal-info/manifest.csv $(O)/images/sbom/
-	@echo "  License manifest : $(O)/images/sbom/manifest.csv"
+	@cp $(O)/legal-info/manifest.csv						\
+		$(O)/images/sbom/$(call brvar,BR2_TARGET_ROOTFS_OCI_TAG)-$(call brvar,BR2_NORMALIZED_ARCH).manifest.csv
+	@echo "  License manifest : $(O)/images/sbom/$(call brvar,BR2_TARGET_ROOTFS_OCI_TAG)-$(call brvar,BR2_NORMALIZED_ARCH).manifest.csv"
 	@echo "  Complete source  : $(O)/legal-info/sources/"
 
 %: | buildroot/Makefile

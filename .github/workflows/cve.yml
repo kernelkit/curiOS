@@ -1,0 +1,52 @@
+name: CVE Watch
+
+on:
+  schedule:
+    # NVD moves daily, the images do not.  Report drift every morning.
+    - cron: '17 5 * * *'
+  push:
+    tags:
+      - 'v[0-9]*.*'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        app: [system, httpd, ntpd, nftables, neofetch]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      - name: Install pkg-stats dependencies
+        run: pip install aiohttp setuptools
+      - name: Restore Cache of NVD feed
+        uses: actions/cache@v4
+        with:
+          path: dl/buildroot-nvd
+          # The feed is a git clone that pkg-stats updates in place, so
+          # any recent copy is a good starting point.
+          key: nvd-${{ github.run_id }}
+          restore-keys: nvd-
+      - name: Configure
+        run: make ${{ matrix.app }}_amd64_defconfig
+      - name: Scan
+        run: make pkg-stats
+      - name: Summarise
+        run: |
+          IMG="curios-${{ matrix.app }}"
+          [ "${IMG}" = "curios-system" ] && IMG="curios"
+          utils/cve-summary output/pkg-stats.json \
+              --image "${IMG}" --version "${{ github.ref_name }}" \
+              | tee -a $GITHUB_STEP_SUMMARY || true
+      - uses: actions/upload-artifact@v4
+        with:
+          name: cve-report-${{ matrix.app }}
+          path: |
+            output/pkg-stats.json
+            output/pkg-stats.html

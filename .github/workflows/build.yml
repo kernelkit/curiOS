@@ -13,12 +13,28 @@ jobs:
     permissions:
       packages: write
       contents: write
+      id-token: write
+      attestations: write
     strategy:
       matrix:
-        app: [system, httpd, ntpd, nftables, neofetch]
+        include:
+          # The system container pairs with Infix, which ships amd64 and
+          # arm64.  Application containers go everywhere Buildroot can
+          # reach.
+          - app: system
+            platforms: '["amd64", "arm64"]'
+          - app: httpd
+            platforms: '["amd64", "arm64", "armv7", "riscv64"]'
+          - app: ntpd
+            platforms: '["amd64", "arm64", "armv7", "riscv64"]'
+          - app: nftables
+            platforms: '["amd64", "arm64", "armv7", "riscv64"]'
+          - app: neofetch
+            platforms: '["amd64", "arm64", "armv7", "riscv64"]'
     uses: ./.github/workflows/build-push.yml
     with:
       app: ${{ matrix.app }}
-      ver: $(echo "${{ github.ref }}" | sed -e 's,.*/\(.*\),\1,')
+      platforms: ${{ matrix.platforms }}
+      ver: ${{ github.ref_name }}
     secrets:
       token: ${{ secrets.GITHUB_TOKEN }}

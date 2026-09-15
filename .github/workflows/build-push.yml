@@ -11,6 +11,10 @@ on:
         description: Version, used for tagging apps, e.g., ghcr/app:VER
         required: true
         type: string
+      platforms:
+        description: JSON array of platforms to build, e.g. '["amd64", "arm64"]'
+        required: true
+        type: string
     secrets:
       token:
         required: true
@@ -23,13 +27,11 @@ jobs:
       contents: read
     strategy:
       matrix:
-        platform: [amd64, arm64]
+        platform: ${{ fromJSON(inputs.platforms) }}
     steps:
-      - name: Debug
-        run: |
-          echo "Input app: ${{ inputs.app }}"
-          echo "Input ver: ${{ inputs.ver }}"
       - uses: actions/checkout@v4
+        with:
+          submodules: recursive
       - name: Build Variables
         id: vars
         run: |
@@ -54,9 +56,19 @@ jobs:
       - name: Configure & Build
         run: |
           make ${{ inputs.app }}_${{ matrix.platform }}_defconfig
-          VER=${{ inputs.ver }}
-          [[ "${VER}" =~ ^v.* ]] && sed -i "s/BR2_TARGET_ROOTFS_OCI_TAG.*/BR2_TARGET_ROOTFS_OCI_TAG=\"${VER}\"/" output/.config
+          VER="${{ inputs.ver }}"
+          if [[ "${VER}" =~ ^v.* ]]; then
+              sed -i "s/BR2_TARGET_ROOTFS_OCI_TAG.*/BR2_TARGET_ROOTFS_OCI_TAG=\"${VER}\"/" output/.config
+          fi
           make
+      - name: Generate SBOM and license manifest
+        run: |
+          VER="${{ inputs.ver }}"
+          if [[ "${VER}" =~ ^v.* ]]; then
+              make VERSION="${VER}" sbom
+          else
+              make sbom
+          fi
       - name: Prepare Artifact
         run: |
           cd output
@@ -75,15 +87,18 @@ jobs:
     permissions:
       packages: write
       contents: write
+      id-token: write
+      attestations: write
     steps:
       - uses: actions/download-artifact@v4
         with:
           pattern: artifact-${{ inputs.app }}-*
           merge-multiple: true
+      - uses: sigstore/cosign-installer@v3
       - name: Artifact Variables
         id: vars
         run: |
-          VER=${{ inputs.ver }}
+          VER="${{ inputs.ver }}"
           SFX=""
           if [[ "${VER}" =~ ^v.* ]]; then
             TAG=${VER#?}
@@ -101,57 +116,82 @@ jobs:
             PRE=false
             LAT=false
           fi
+          IMG="curios-${{ inputs.app }}"
+          [[ "${IMG}" == "curios-system" ]] && IMG="curios"
           echo "pre=$PRE" >> $GITHUB_OUTPUT
           echo "lat=$LAT" >> $GITHUB_OUTPUT
           echo "ver=$VER" >> $GITHUB_OUTPUT
           echo "tag=$TAG" >> $GITHUB_OUTPUT
           echo "sfx=$SFX" >> $GITHUB_OUTPUT
-      - name: Prepare Aritfacts
+          echo "img=$IMG" >> $GITHUB_OUTPUT
+      - name: Prepare Artifacts
         run: |
           SFX=${{ steps.vars.outputs.sfx }}
+          IMG=${{ steps.vars.outputs.img }}
+          mkdir -p sbom
           for file in *.tar.gz; do
               fn=$(basename ${file} .tar.gz)
-              app_name=${fn%-*}
               arch=${fn##*-}
-              # Map clean defconfig names to curios-prefixed container names
-              name="curios-${app_name}"
-              [[ "${name}" == "curios-system" ]] && name="curios"
-              echo "Found: $app_name -> $name, arch: $arch"
               tar xf ${file}
               rm -f  ${file}
-              mv ${fn}/rootfs-oci ${name}-oci-${arch}${SFX}
-              mv ${fn}/COPYING ${name}-oci-${arch}${SFX}/
-              rm -rf -- ${name}-oci-${arch}${SFX}/.[!.]*
-              tar cfz ${name}-oci-${arch}${SFX}.tar.gz -C ${name}-oci-${arch}${SFX} .
+              # Keep the SBOMs out of the image directory; they describe
+              # the image, they are not part of it.
+              mv ${fn}/sbom/* sbom/
+              rmdir ${fn}/sbom
+              mv ${fn}/rootfs-oci ${IMG}-oci-${arch}${SFX}
+              mv ${fn}/COPYING ${IMG}-oci-${arch}${SFX}/
+              rm -rf -- ${IMG}-oci-${arch}${SFX}/.[!.]*
+              tar cfz ${IMG}-oci-${arch}${SFX}.tar.gz -C ${IMG}-oci-${arch}${SFX} .
           done
-          ls -la *-oci*${SFX}/
+          tar cfz ${IMG}-sbom${SFX}.tar.gz sbom/
           for file in *.tar.gz; do
               sha256sum $file > $file.sha256
           done
           ls -l *.tar.gz*
-
       - name: Log in to registry
         run: |
           echo "${{ secrets.token }}" | buildah login -u ${{ github.actor }} --password-stdin ghcr.io
       - name: Push image(s)
+        id: push
         run: |
           set -x
-          APP=${{ inputs.app }}
-          # Map clean defconfig names to curios-prefixed container names
-          IMG="curios-${APP}"
-          [[ "${IMG}" == "curios-system" ]] && IMG="curios"
+          IMG=${{ steps.vars.outputs.img }}
           TAG=${{ steps.vars.outputs.tag }}
           SFX=${{ steps.vars.outputs.sfx }}
           LAT=${{ steps.vars.outputs.lat }}
           URL=ghcr.io/${{ github.repository_owner }}/${IMG}
           buildah manifest create ${IMG}
-          buildah manifest add ${IMG} oci:${IMG}-oci-amd64${SFX}
-          buildah manifest add ${IMG} oci:${IMG}-oci-arm64${SFX}
-          buildah manifest push --all -f oci ${IMG} docker://${URL}:${TAG}
-          # Also push as :latest for stable releases
+          for dir in ${IMG}-oci-*${SFX}; do
+              [ -d "$dir" ] || continue
+              buildah manifest add ${IMG} oci:${dir}
+          done
+          buildah manifest push --all -f oci --digestfile digest.txt ${IMG} docker://${URL}:${TAG}
           if [[ "${LAT}" == "true" ]]; then
             buildah manifest push --all -f oci ${IMG} docker://${URL}:latest
           fi
+          echo "url=${URL}"              >> $GITHUB_OUTPUT
+          echo "digest=$(cat digest.txt)" >> $GITHUB_OUTPUT
+      - name: Sign image
+        env:
+          COSIGN_YES: "true"
+        run: |
+          cosign sign "${{ steps.push.outputs.url }}@${{ steps.push.outputs.digest }}"
+      - name: Attest SBOM
+        env:
+          COSIGN_YES: "true"
+        run: |
+          # One CycloneDX attestation per architecture, since each
+          # architecture is built from its own set of sources.
+          for bom in sbom/*.cdx.json; do
+              cosign attest --type cyclonedx --predicate "$bom" \
+                     "${{ steps.push.outputs.url }}@${{ steps.push.outputs.digest }}"
+          done
+      - name: Attest build provenance
+        uses: actions/attest-build-provenance@v2
+        with:
+          subject-name: ${{ steps.push.outputs.url }}
+          subject-digest: ${{ steps.push.outputs.digest }}
+          push-to-registry: true
       - uses: ncipollo/release-action@v1
         with:
           allowUpdates: true
@@ -165,9 +205,23 @@ jobs:
           artifacts: "*.tar.gz*"
       - name: Summary
         run: |
-          cat <<EOF >> $GITHUB_STEP_SUMMARY
-          # Build of ${{ inputs.app }}, version ${{ steps.vars.outputs.ver }}, Complete! :rocket:
-          
-          For the public download links of these build artifacts, please see:
-           <https://github.com/kernelkit/curiOS/releases/tag/${{ steps.vars.outputs.ver }}>
-          EOF
+          cat <<EOS >> $GITHUB_STEP_SUMMARY
+          # ${{ inputs.app }} ${{ steps.vars.outputs.ver }} :rocket:
+
+          | | |
+          |---|---|
+          | Image     | \`${{ steps.push.outputs.url }}:${{ steps.vars.outputs.tag }}\` |
+          | Digest    | \`${{ steps.push.outputs.digest }}\` |
+          | Platforms | ${{ inputs.platforms }} |
+
+          Signed with Sigstore, SBOM attested as CycloneDX, SLSA build
+          provenance attached.  Verify with:
+
+          \`\`\`sh
+          cosign verify ${{ steps.push.outputs.url }}:${{ steps.vars.outputs.tag }} \\
+            --certificate-identity-regexp='^https://github.com/${{ github.repository }}/' \\
+            --certificate-oidc-issuer=https://token.actions.githubusercontent.com
+          \`\`\`
+
+          Downloads: <https://github.com/${{ github.repository }}/releases/tag/${{ steps.vars.outputs.ver }}>
+          EOS
