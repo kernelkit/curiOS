@@ -40,10 +40,18 @@ sbom: $(config) buildroot/Makefile
 	@echo "  License manifest : $(O)/images/sbom/$(call brvar,BR2_TARGET_ROOTFS_OCI_TAG)-$(call brvar,BR2_NORMALIZED_ARCH).manifest.csv"
 	@echo "  Complete source  : $(O)/legal-info/sources/"
 
+# Run the container tests against whatever is in $(O)/images/
+test:
+	@$(CURDIR)/test/run.sh
+
+# Scaffold a new container:  make new-container NAME=foo ARGS="--package"
+new-container:
+	@$(CURDIR)/utils/new-container $(NAME) $(ARGS)
+
 %: | buildroot/Makefile
 	@+$(call bmake,$@)
 
 buildroot/Makefile:
 	@git submodule update --init
 
-.PHONY: all sbom
+.PHONY: all sbom test new-container

@@ -76,6 +76,12 @@ jobs:
           mv images ${{ steps.vars.outputs.dir }}
           ln -s ${{ steps.vars.outputs.dir }} images
           tar chfz ${{ steps.vars.outputs.tgz }} ${{ steps.vars.outputs.dir }}
+      - name: Test image
+        # Only the native architecture can actually be run here.
+        if: matrix.platform == 'amd64'
+        run: |
+          ./test/run.sh ${{ inputs.app }} \
+              output/${{ steps.vars.outputs.dir }}/curios*-oci-*.tar.gz
       - uses: actions/upload-artifact@v4
         with:
           path: output/${{ steps.vars.outputs.tgz }}
