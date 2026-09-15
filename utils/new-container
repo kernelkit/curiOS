@@ -1,0 +1,248 @@
+#!/bin/sh
+# Scaffold a new curiOS container.
+#
+# The five containers in this repository are examples.  The point of
+# building on Buildroot is that you can cross-compile your own daemon
+# into an image the same size, so this lays out the files to do that.
+set -e
+
+usage()
+{
+	cat <<-EOF
+	Usage: utils/new-container NAME [OPTIONS]
+
+	Creates defconfigs, a board directory and, with --package, a
+	Buildroot package skeleton building from src/NAME/.
+
+	Options:
+	  --package        also scaffold package/NAME and src/NAME
+	  --arch "LIST"    architectures (default: "amd64 arch64 armv7 riscv64")
+	  --entrypoint CMD image entrypoint (default: /usr/bin/tini --)
+	  --cmd CMD        image command
+	  --ports PORTS    exposed ports, e.g. "8080/tcp"
+	  --desc TEXT      one-line image description
+	  -h, --help       this text
+	EOF
+}
+
+NAME=
+PACKAGE=false
+ARCHES="amd64 arm64 armv7 riscv64"
+ENTRYPOINT="/usr/bin/tini --"
+CMD=
+PORTS=
+DESC=
+
+while [ $# -gt 0 ]; do
+	case "$1" in
+		-h|--help)    usage; exit 0 ;;
+		--package)    PACKAGE=true ;;
+		--arch)       ARCHES="$2";    shift ;;
+		--entrypoint) ENTRYPOINT="$2"; shift ;;
+		--cmd)        CMD="$2";        shift ;;
+		--ports)      PORTS="$2";      shift ;;
+		--desc)       DESC="$2";       shift ;;
+		-*)           echo "Unknown option: $1" >&2; usage >&2; exit 1 ;;
+		*)            [ -n "$NAME" ] && { usage >&2; exit 1; }; NAME="$1" ;;
+	esac
+	shift
+done
+
+[ -n "$NAME" ] || { usage >&2; exit 1; }
+
+case "$NAME" in
+	*[!a-z0-9-]*) echo "ERROR: name must be lowercase alphanumeric or '-'" >&2
+	              exit 1 ;;
+esac
+
+TOP=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
+cd "$TOP"
+
+[ -e "configs/${NAME}_amd64_defconfig" ] && {
+	echo "ERROR: ${NAME} already exists" >&2
+	exit 1
+}
+
+: "${DESC:=curiOS ${NAME} container.}"
+
+# Buildroot's OCI label parsing splits on whitespace, so the existing
+# defconfigs separate description words with U+2800 BRAILLE PATTERN BLANK.
+DESC_LBL=$(printf '%s' "$DESC" | sed 's/ /\xe2\xa0\x80/g')
+
+arch_prelude()
+{
+	case "$1" in
+	amd64)
+		printf 'BR2_x86_64=y\nBR2_TOOLCHAIN_EXTERNAL=y\n'
+		printf 'BR2_TOOLCHAIN_EXTERNAL_BOOTLIN_X86_64_UCLIBC_STABLE=y\n'
+		printf 'BR2_STATIC_LIBS=y\n' ;;
+	arm64)
+		printf 'BR2_aarch64=y\nBR2_TOOLCHAIN_EXTERNAL=y\n'
+		printf 'BR2_TOOLCHAIN_EXTERNAL_BOOTLIN=y\n'
+		printf 'BR2_TOOLCHAIN_EXTERNAL_BOOTLIN_AARCH64_UCLIBC_STABLE=y\n'
+		printf 'BR2_STATIC_LIBS=y\n' ;;
+	armv7)
+		# No BR2_STATIC_LIBS: fs/oci needs Go arch support, which on
+		# arm needs PIE, which static linking rules out.
+		printf 'BR2_arm=y\nBR2_cortex_a7=y\nBR2_ARM_EABIHF=y\n'
+		printf 'BR2_ARM_FPU_VFPV3D16=y\nBR2_TOOLCHAIN_EXTERNAL=y\n'
+		printf 'BR2_TOOLCHAIN_EXTERNAL_BOOTLIN=y\n'
+		printf 'BR2_TOOLCHAIN_EXTERNAL_BOOTLIN_ARMV7_EABIHF_UCLIBC_STABLE=y\n' ;;
+	riscv64)
+		printf 'BR2_riscv=y\nBR2_TOOLCHAIN_EXTERNAL=y\n'
+		printf 'BR2_TOOLCHAIN_EXTERNAL_BOOTLIN=y\n'
+		printf 'BR2_TOOLCHAIN_EXTERNAL_BOOTLIN_RISCV64_LP64D_UCLIBC_STABLE=y\n'
+		printf 'BR2_STATIC_LIBS=y\n' ;;
+	*)
+		echo "ERROR: unknown architecture '$1'" >&2
+		exit 1 ;;
+	esac
+}
+
+mkdir -p "board/${NAME}/rootfs"
+: > "board/${NAME}/rootfs/.empty"
+
+for arch in $ARCHES; do
+	cfg="configs/${NAME}_${arch}_defconfig"
+	arch_prelude "$arch" > "$cfg"
+	cat >> "$cfg" <<-EOF
+	BR2_DL_DIR="\${BR2_EXTERNAL_CURIOS_PATH}/dl"
+	BR2_CCACHE=y
+	BR2_CCACHE_DIR="\${BR2_EXTERNAL_CURIOS_PATH}/.ccache"
+	BR2_OPTIMIZE_S=y
+	BR2_TARGET_GENERIC_HOSTNAME="curiOS"
+	BR2_TARGET_GENERIC_ISSUE="Welcome to curiOS"
+	# BR2_TARGET_ENABLE_ROOT_LOGIN is not set
+	BR2_INIT_NONE=y
+	# BR2_TARGET_GENERIC_GETTY is not set
+	# BR2_TARGET_GENERIC_REMOUNT_ROOTFS_RW is not set
+	BR2_ROOTFS_OVERLAY="\$(BR2_EXTERNAL_CURIOS_PATH)/board/${NAME}/rootfs"
+	BR2_ROOTFS_POST_BUILD_SCRIPT="\$(BR2_EXTERNAL_CURIOS_PATH)/board/common/post-build.sh"
+	BR2_ROOTFS_POST_IMAGE_SCRIPT="\$(BR2_EXTERNAL_CURIOS_PATH)/board/common/post-image.sh"
+	# BR2_PACKAGE_BUSYBOX is not set
+	# BR2_PACKAGE_IFUPDOWN_SCRIPTS is not set
+	BR2_PACKAGE_TINI=y
+	BR2_PACKAGE_CURIOS_HEALTH=y
+	EOF
+	$PACKAGE && printf 'BR2_PACKAGE_%s=y\n' \
+		"$(printf '%s' "$NAME" | tr 'a-z-' 'A-Z_')" >> "$cfg"
+	cat >> "$cfg" <<-EOF
+	BR2_TARGET_ROOTFS_OCI=y
+	BR2_TARGET_ROOTFS_OCI_AUTHOR="curiOS"
+	BR2_TARGET_ROOTFS_OCI_TAG="curios-${NAME}"
+	BR2_TARGET_ROOTFS_OCI_ENTRYPOINT="${ENTRYPOINT}"
+	EOF
+	[ -n "$CMD" ]   && echo "BR2_TARGET_ROOTFS_OCI_CMD=\"${CMD}\""     >> "$cfg"
+	[ -n "$PORTS" ] && echo "BR2_TARGET_ROOTFS_OCI_PORTS=\"${PORTS}\"" >> "$cfg"
+	cat >> "$cfg" <<-EOF
+	BR2_TARGET_ROOTFS_OCI_LABELS=".url=https://github.com/kernelkit/curiOS .title=curiOS-${NAME} .description=${DESC_LBL}"
+	# BR2_TARGET_ROOTFS_TAR is not set
+	EOF
+	echo "  defconfig    : $cfg"
+done
+
+if $PACKAGE; then
+	VAR=$(printf '%s' "$NAME" | tr 'a-z-' 'A-Z_')
+	mkdir -p "package/${NAME}" "src/${NAME}"
+
+	cat > "package/${NAME}/Config.in" <<-EOF
+	config BR2_PACKAGE_${VAR}
+		bool "${NAME}"
+		help
+		  ${DESC}
+	EOF
+
+	cat > "package/${NAME}/${NAME}.mk" <<-EOF
+	################################################################################
+	#
+	# ${NAME}
+	#
+	################################################################################
+
+	# Building from src/${NAME}/.  To build a released tarball instead,
+	# drop SITE_METHOD and point SITE at the download URL, then add a
+	# ${VAR}.hash next to this file.
+	${VAR}_VERSION = 1.0
+	${VAR}_SITE_METHOD = local
+	${VAR}_SITE = \$(BR2_EXTERNAL_CURIOS_PATH)/src/${NAME}
+	${VAR}_LICENSE = ISC
+	${VAR}_LICENSE_FILES = LICENSE
+
+	define ${VAR}_BUILD_CMDS
+		\$(TARGET_CONFIGURE_OPTS) \$(MAKE) -C \$(@D) all
+	endef
+
+	define ${VAR}_INSTALL_TARGET_CMDS
+		\$(TARGET_CONFIGURE_OPTS) \$(MAKE) -C \$(@D) DESTDIR=\$(TARGET_DIR) install
+	endef
+
+	\$(eval \$(generic-package))
+	EOF
+
+	cat > "src/${NAME}/Makefile" <<-EOF
+	EXEC    = ${NAME}
+	OBJS    = main.o
+	CFLAGS ?= -W -Wall -Wextra -Os
+	prefix ?= /usr
+
+	all: \$(EXEC)
+
+	\$(EXEC): \$(OBJS)
+		\$(CC) \$(CFLAGS) \$(LDFLAGS) -o \$@ \$(OBJS)
+
+	install: \$(EXEC)
+		install -d \$(DESTDIR)\$(prefix)/sbin
+		install -m 0755 \$(EXEC) \$(DESTDIR)\$(prefix)/sbin/\$(EXEC)
+
+	clean:
+		-rm -f \$(EXEC) \$(OBJS)
+
+	.PHONY: all install clean
+	EOF
+
+	cat > "src/${NAME}/main.c" <<-EOF
+	#include <stdio.h>
+
+	int main(void)
+	{
+		puts("Hello from ${NAME}.");
+		return 0;
+	}
+	EOF
+
+	cp COPYING "src/${NAME}/LICENSE"
+
+	# Wire the package into the menu, keeping the list sorted.
+	awk -v name="$NAME" '
+		/^endmenu/ && !done {
+			print "\tsource \"$BR2_EXTERNAL_CURIOS_PATH/package/" name "/Config.in\""
+			done = 1
+		}
+		{ print }
+	' package/Config.in > package/Config.in.new
+	mv package/Config.in.new package/Config.in
+
+	echo "  package      : package/${NAME}/"
+	echo "  source       : src/${NAME}/"
+fi
+
+cat <<EOF
+
+Scaffolded curios-${NAME}.  Next:
+
+  1. Put your application in src/${NAME}/, or point
+     package/${NAME}/${NAME}.mk at its release tarball.
+  2. Add anything the image needs at runtime to
+     board/${NAME}/rootfs/.
+  3. Declare a health check in
+     board/${NAME}/rootfs/usr/libexec/curios/healthcheck.json
+     (see board/httpd/ for the shape).
+  4. Build it:
+
+       make ${NAME}_amd64_defconfig
+       make
+       podman load < output/images/curios-${NAME}-oci-x86_64.tar.gz
+
+  5. Add ${NAME} to the matrix in .github/workflows/build.yml to get
+     it built, signed and published for every architecture.
+EOF
