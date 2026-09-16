@@ -120,9 +120,10 @@ its own check in `board/<name>/rootfs/usr/libexec/curios/healthcheck.json`.
 
 ## Images
 
-Pre-built images for `amd64`, `arm64`, `armv7` and `riscv64` are on the
-[KernelKit Container Registry][2].  The `system` image is `amd64` and
-`arm64` only.
+Images are on the [KernelKit Container Registry][2].  Application
+containers are built for `amd64`, `arm64`, `armv7` and `riscv64`; the
+`system` container for `amd64` and `arm64`.  The 32-bit ARM and RISC-V
+builds land with the next release — until then, build them yourself.
 
 ### [curiOS system][3]
 
