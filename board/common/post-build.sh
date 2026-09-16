@@ -7,7 +7,26 @@ done
 
 # We allow S40network but the user must provide the configuration
 # because by default container runtimes manage all networking.
-rm "${TARGET_DIR}/etc/network/interfaces"
+rm -f "${TARGET_DIR}/etc/network/interfaces"
+
+# Buildroot copies the external toolchain's runtime libraries into the
+# image whenever it is linked dynamically.  For a C daemon that means
+# carrying a 2.4 MB libstdc++ and an OpenMP runtime nothing references
+# -- more than doubling curios-ntpd.  Drop the ones no ELF asks for.
+for lib in libstdc++ libgomp libatomic; do
+    if grep -rlq "$lib" "${TARGET_DIR}/bin" "${TARGET_DIR}/sbin"		\
+	    "${TARGET_DIR}/usr/bin" "${TARGET_DIR}/usr/sbin"		\
+	    "${TARGET_DIR}/usr/libexec" 2>/dev/null; then
+	continue
+    fi
+    # Nothing in a library either, beyond the library itself.
+    if find "${TARGET_DIR}/lib" "${TARGET_DIR}/usr/lib" -name '*.so*' 2>/dev/null \
+	    | grep -v "$lib" | xargs -r grep -lq "$lib" 2>/dev/null; then
+	continue
+    fi
+    find "${TARGET_DIR}/lib" "${TARGET_DIR}/usr/lib" -name "$lib*" \
+	 -delete 2>/dev/null || true
+done
 
 VERSION="${CURIOS_VERSION}"
 GIT_VERSION="${CURIOS_BUILD_ID}"
