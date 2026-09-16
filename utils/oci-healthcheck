@@ -50,30 +50,37 @@ def main():
     with open(index_path, encoding="utf-8") as fh:
         index = json.load(fh)
 
+    stale = set()
+    live = set()
+
     for desc in index["manifests"]:
         manifest = read_blob(args.oci, desc["digest"])
-        old_manifest = desc["digest"]
-        old_config = manifest["config"]["digest"]
+        stale.add(desc["digest"])
+        stale.add(manifest["config"]["digest"])
 
-        config = read_blob(args.oci, old_config)
+        config = read_blob(args.oci, manifest["config"]["digest"])
         config.setdefault("config", {})["Healthcheck"] = hc
 
         digest, size = write_blob(args.oci, config)
         manifest["config"]["digest"] = digest
         manifest["config"]["size"] = size
+        live.add(digest)
 
         digest, size = write_blob(args.oci, manifest)
         desc["digest"] = digest
         desc["size"] = size
-
-        for stale in (old_config, old_manifest):
-            try:
-                os.unlink(blob_path(args.oci, stale))
-            except OSError:
-                pass
+        live.add(digest)
 
     with open(index_path, "w", encoding="utf-8") as fh:
         json.dump(index, fh, separators=(",", ":"))
+
+    # A blob can be shared between manifests, so only drop the ones
+    # nothing points at any more.
+    for digest in stale - live:
+        try:
+            os.unlink(blob_path(args.oci, digest))
+        except OSError:
+            pass
 
     print("  Healthcheck  : %s" % " ".join(hc["Test"]))
 
