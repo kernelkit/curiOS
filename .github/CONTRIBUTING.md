@@ -36,10 +36,17 @@ in this way. Start with why.
    issue number for the ChangeLog
  - **New features** need discussion first! Please open an issue or
    contact us before starting work on major changes
- - **New containers** should follow the existing pattern:
-   - Create defconfigs for both amd64 and arm64
-   - Add board-specific rootfs overlays if needed
-   - Update the build workflow matrix
+ - **New containers** start from the scaffolding, which lays out the
+   defconfigs, board directory and, with `--package`, a Buildroot
+   package building from `src/`:
+
+       make new-container NAME=mydaemon ARGS="--package"
+
+   Then:
+   - Declare a health check in
+     `board/<name>/rootfs/usr/libexec/curios/healthcheck.json`
+   - Add a test case in `test/case/<name>.sh`
+   - Add the name to the matrix in `.github/workflows/build.yml`
    - Document the container in README.md with examples
 
 Please take care to ensure you follow the project coding style and commit
