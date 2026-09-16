@@ -46,6 +46,7 @@ listening()
 
 	for tbl in "/proc/net/$proto" "/proc/net/${proto}6"; do
 		[ -r "$tbl" ] || continue
+		# shellcheck disable=SC2034  # positional placeholders
 		while read -r sl local rem st rest; do
 			[ "$sl" = "sl" ] && continue
 			case "$local" in

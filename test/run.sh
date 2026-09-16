@@ -6,7 +6,7 @@
 #
 set -e
 
-TOP=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
+TOP=$(unset CDPATH; cd -- "$(dirname -- "$0")/.." && pwd)
 : "${RUNTIME:=podman}"
 export RUNTIME
 

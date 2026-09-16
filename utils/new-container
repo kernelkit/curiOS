@@ -55,7 +55,7 @@ case "$NAME" in
 	              exit 1 ;;
 esac
 
-TOP=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
+TOP=$(unset CDPATH; cd -- "$(dirname -- "$0")/.." && pwd)
 cd "$TOP"
 
 [ -e "configs/${NAME}_amd64_defconfig" ] && {
