@@ -171,9 +171,13 @@ jobs:
               [ -d "$dir" ] || continue
               buildah manifest add ${IMG} oci:${dir}
           done
-          buildah manifest push --all -f oci --digestfile digest.txt ${IMG} docker://${URL}:${TAG}
+          # v2s2, not oci: podman and docker parse an OCI-mediatype
+          # config with the OCI struct, which has no Healthcheck field,
+          # so HEALTHCHECK is silently dropped.  The release tarballs
+          # Buildroot writes stay OCI.
+          buildah manifest push --all -f v2s2 --digestfile digest.txt ${IMG} docker://${URL}:${TAG}
           if [[ "${LAT}" == "true" ]]; then
-            buildah manifest push --all -f oci ${IMG} docker://${URL}:latest
+            buildah manifest push --all -f v2s2 ${IMG} docker://${URL}:latest
           fi
           echo "url=${URL}"              >> $GITHUB_OUTPUT
           echo "digest=$(cat digest.txt)" >> $GITHUB_OUTPUT
