@@ -1,0 +1,98 @@
+#!/usr/bin/env python3
+"""Measure published image sizes and emit the README comparison table.
+
+Sizes in a README rot.  This asks the registries, so the table can be
+regenerated instead of remembered.  Needs skopeo, and network.
+"""
+import argparse
+import json
+import subprocess
+import sys
+
+# What curiOS ships, and what someone would otherwise reach for.
+CURIOS = [
+    ("ghcr.io/kernelkit/curios-httpd:latest",    "a working HTTP server"),
+    ("ghcr.io/kernelkit/curios-nftables:latest", "nft plus ruleset lifecycle"),
+    ("ghcr.io/kernelkit/curios-ntpd:latest",     "ISC ntpd"),
+    ("ghcr.io/kernelkit/curios:latest",          "full BusyBox staging system"),
+]
+OTHERS = [
+    ("gcr.io/distroless/static-debian12:latest", "nothing -- CA certs and tzdata"),
+    ("docker.io/library/busybox:latest",         "shell and coreutils, no service"),
+    ("docker.io/library/alpine:latest",          "package manager, no service"),
+    ("docker.io/library/nginx:alpine",           "an HTTP server"),
+]
+
+
+def skopeo(*args):
+    try:
+        out = subprocess.run(("skopeo",) + args, capture_output=True,
+                             check=True, text=True, timeout=120)
+    except (OSError, subprocess.SubprocessError) as err:
+        print("WARNING: skopeo %s: %s" % (" ".join(args), err), file=sys.stderr)
+        return None
+    return json.loads(out.stdout)
+
+
+def measure(ref, arch="amd64"):
+    """Return (compressed bytes, layer count, platform count) for one image."""
+    raw = skopeo("inspect", "--raw", "docker://" + ref)
+    if raw is None:
+        return None
+
+    platforms = 1
+    if "manifests" in raw:
+        manifests = [m for m in raw["manifests"]
+                     if m.get("platform", {}).get("os") == "linux"]
+        platforms = len(manifests)
+        digest = next((m["digest"] for m in manifests
+                       if m["platform"].get("architecture") == arch), None)
+        if digest is None:
+            return None
+        repo = ref.rsplit(":", 1)[0]
+        raw = skopeo("inspect", "--raw", "docker://%s@%s" % (repo, digest))
+        if raw is None:
+            return None
+
+    layers = raw.get("layers", [])
+    return sum(l["size"] for l in layers), len(layers), platforms
+
+
+def human(size):
+    if size >= 1024 * 1024:
+        return "%.1f MiB" % (size / (1024 * 1024))
+    return "%d KiB" % round(size / 1024)
+
+
+def main():
+    ap = argparse.ArgumentParser(description=__doc__)
+    ap.add_argument("--arch", default="amd64", help="architecture to measure")
+    args = ap.parse_args()
+
+    rows = []
+    for group, images in (("curios", CURIOS), ("other", OTHERS)):
+        for ref, what in images:
+            got = measure(ref, args.arch)
+            if got is None:
+                print("WARNING: skipping %s" % ref, file=sys.stderr)
+                continue
+            size, layers, platforms = got
+            rows.append((group, ref, what, size, layers, platforms))
+
+    if not rows:
+        sys.exit("ERROR: could not measure anything")
+
+    print("| Image | Compressed | Layers | What you get |")
+    print("|---|--:|--:|---|")
+    for group, ref, what, size, layers, _ in rows:
+        name = ref.split("/")[-1].split(":")[0]
+        if group == "curios":
+            name = "**%s**" % name
+        print("| %s | %s | %d | %s |" % (name, human(size), layers, what))
+
+    print()
+    print("<sub>%s, measured with `utils/size-table`.</sub>" % args.arch)
+
+
+if __name__ == "__main__":
+    main()
