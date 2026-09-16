@@ -1,28 +1,29 @@
 #!/bin/sh
-# curios-ntpd: binds NTP, reports healthy, and ships no shell.
+# curios-ntpd: binds NTP, ships no shell, probes itself with the binary.
 set -e
 . "$(dirname "$0")/../lib.sh"
 
-IMG=$(load_image "$1")
+TARBALL=$1
+CFG=$(image_config "$TARBALL")
+IMG=$(load_image "$TARBALL")
 trap cleanup EXIT
 
 head1 "curios-ntpd ($IMG)"
 
-check "exposes port 123/udp" \
-      sh -c "image_field $IMG '{{.Config.ExposedPorts}}' | grep -q '123/udp'"
-check "declares a health check" \
-      sh -c "image_field $IMG '{{.Config.Healthcheck.Test}}' | grep -q curios-health"
+check_match "exposes port 123/udp" "$(image_field "$IMG" '{{.Config.ExposedPorts}}')" "123/udp"
+check_match "image declares a health check" "$CFG" '"Healthcheck"'
+check_match "health check probes udp:123"    "$CFG" 'udp:123'
 
-# The image deliberately has no shell, which is why the health probe is
-# a binary rather than a shell one-liner.
+# The image deliberately has no shell, which is why its probe is a
+# binary rather than the ash script the other images use.
 check_not "ships no shell" $RUNTIME run --rm --entrypoint /bin/sh "$IMG" -c true
 
 start --cap-add SYS_TIME "$IMG" >/dev/null
+sleep 3
 
-if await_health healthy 40; then
-	ok "reports healthy"
-else
-	fail "reports healthy (got '$($RUNTIME inspect --format '{{.State.Health.Status}}' "$CID" 2>/dev/null)')"
-fi
+check "health probe reports the daemon bound" \
+      $RUNTIME exec "$CID" /usr/libexec/curios/curios-health udp:123
+check_not "health probe fails on an unbound port" \
+      $RUNTIME exec "$CID" /usr/libexec/curios/curios-health -q udp:64999
 
 summary
