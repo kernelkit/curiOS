@@ -239,6 +239,5 @@ curiOS started as a fork of <https://github.com/brianredbeard/coreos_buildroot>.
 [6]: https://github.com/orgs/kernelkit/packages/container/package/curios-httpd
 [7]: https://github.com/orgs/kernelkit/packages/container/package/curios-neofetch
 [8]: https://github.com/kernelkit/infix
-[9]: https://kernelkit.org
 [11]: https://digital-strategy.ec.europa.eu/en/policies/cra-reporting
 [12]: https://digital-strategy.ec.europa.eu/en/policies/cyber-resilience-act
