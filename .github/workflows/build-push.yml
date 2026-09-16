@@ -56,10 +56,6 @@ jobs:
       - name: Configure & Build
         run: |
           make ${{ inputs.app }}_${{ matrix.platform }}_defconfig
-          VER="${{ inputs.ver }}"
-          if [[ "${VER}" =~ ^v.* ]]; then
-              sed -i "s/BR2_TARGET_ROOTFS_OCI_TAG.*/BR2_TARGET_ROOTFS_OCI_TAG=\"${VER}\"/" output/.config
-          fi
           make
       - name: Generate SBOM and license manifest
         run: |
