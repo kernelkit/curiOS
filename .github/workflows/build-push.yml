@@ -26,6 +26,7 @@ jobs:
       packages: write
       contents: read
     strategy:
+      fail-fast: false
       matrix:
         platform: ${{ fromJSON(inputs.platforms) }}
     steps:
@@ -153,6 +154,9 @@ jobs:
       - name: Log in to registry
         run: |
           echo "${{ secrets.token }}" | buildah login -u ${{ github.actor }} --password-stdin ghcr.io
+          # cosign and the attestation action read the Docker credential
+          # store, which buildah login does not write.
+          echo "${{ secrets.token }}" | docker login -u ${{ github.actor }} --password-stdin ghcr.io
       - name: Push image(s)
         id: push
         run: |

@@ -16,6 +16,7 @@ jobs:
       id-token: write
       attestations: write
     strategy:
+      fail-fast: false
       matrix:
         include:
           # The system container pairs with Infix, which ships amd64 and
