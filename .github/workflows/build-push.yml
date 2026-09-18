@@ -202,6 +202,10 @@ jobs:
           subject-name: ${{ steps.push.outputs.url }}
           subject-digest: ${{ steps.push.outputs.digest }}
           push-to-registry: true
+          # The subject is an image in the registry, not a workflow
+          # artifact, so there is nothing for a storage record to point
+          # at.  The attestation still goes to the registry.
+          create-storage-record: false
       - uses: ncipollo/release-action@v1
         with:
           allowUpdates: true
