@@ -43,7 +43,7 @@ sbom: $(config) buildroot/Makefile
 # CVE status for the versions this configuration builds, limited to what
 # actually ships.  The first run clones the NVD feed, which takes a while.
 cve: $(config) buildroot/Makefile
-	@+$(call bmake,pkg-stats)
+	@+$(call bmake,pkg-stats) >&2
 	@+$(call bmake,show-info) | sed -n '/^{/p' >$(O)/show-info.json
 	@$(CURDIR)/utils/cve-summary $(O)/pkg-stats.json			\
 		--packages $(O)/show-info.json					\
