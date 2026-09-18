@@ -36,17 +36,11 @@ jobs:
       - name: Configure
         run: make ${{ matrix.app }}_amd64_defconfig
       - name: Scan
-        run: make pkg-stats
-      - name: Summarise
-        run: |
-          IMG="curios-${{ matrix.app }}"
-          [ "${IMG}" = "curios-system" ] && IMG="curios"
-          utils/cve-summary output/pkg-stats.json \
-              --image "${IMG}" --version "${{ github.ref_name }}" \
-              | tee -a $GITHUB_STEP_SUMMARY || true
+        run: make VERSION="${{ github.ref_name }}" cve | tee -a $GITHUB_STEP_SUMMARY
       - uses: actions/upload-artifact@v7
         with:
           name: cve-report-${{ matrix.app }}
           path: |
             output/pkg-stats.json
             output/pkg-stats.html
+            output/show-info.json

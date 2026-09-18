@@ -75,10 +75,16 @@ statically, so shipping these images carries that obligation.
 CVE status for the versions in a configuration:
 
     $ make httpd_amd64_defconfig
-    $ make pkg-stats
-    $ utils/cve-summary output/pkg-stats.json
+    $ make cve
 
 The first run clones the NVD feed, which takes a while.
+
+pkg-stats reports every package the configuration enables, build host
+included, under the bare package name -- a CVE in `host-gawk` shows up
+as one in `gawk`.  `make cve` passes Buildroot's `show-info` to
+`utils/cve-summary`, which drops anything that does not ship in the
+rootfs, and says how many it dropped.  Add `--exit-code` to
+`cve-summary` to make an affected image fail the command.
 
 
 ## Health checks

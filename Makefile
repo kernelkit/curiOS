@@ -40,6 +40,16 @@ sbom: $(config) buildroot/Makefile
 	@echo "  License manifest : $(O)/images/sbom/$(call brvar,BR2_TARGET_ROOTFS_OCI_TAG)-$(call brvar,BR2_NORMALIZED_ARCH).manifest.csv"
 	@echo "  Complete source  : $(O)/legal-info/sources/"
 
+# CVE status for the versions this configuration builds, limited to what
+# actually ships.  The first run clones the NVD feed, which takes a while.
+cve: $(config) buildroot/Makefile
+	@+$(call bmake,pkg-stats)
+	@+$(call bmake,show-info) | sed -n '/^{/p' >$(O)/show-info.json
+	@$(CURDIR)/utils/cve-summary $(O)/pkg-stats.json			\
+		--packages $(O)/show-info.json					\
+		--image    "$(call brvar,BR2_TARGET_ROOTFS_OCI_TAG)"		\
+		--version  "$(VERSION)"
+
 # Run the container tests against whatever is in $(O)/images/
 test:
 	@$(CURDIR)/test/run.sh
@@ -54,4 +64,4 @@ new-container:
 buildroot/Makefile:
 	@git submodule update --init
 
-.PHONY: all sbom test new-container
+.PHONY: all sbom cve test new-container
