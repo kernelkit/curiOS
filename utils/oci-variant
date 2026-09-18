@@ -1,0 +1,89 @@
+#!/usr/bin/env python3
+"""Copy the architecture variant into an OCI image's configuration.
+
+sloci-image records the variant in the index descriptor but not in the
+image config, and tools that read the config -- buildah among them --
+then publish an ARMv7 image as plain "linux/arm".  An ARMv6 host will
+happily select that and die on the first NEON instruction.
+"""
+import argparse
+import hashlib
+import json
+import os
+import sys
+
+
+def blob_path(oci, digest):
+    algo, hexd = digest.split(":", 1)
+    return os.path.join(oci, "blobs", algo, hexd)
+
+
+def read_blob(oci, digest):
+    with open(blob_path(oci, digest), "rb") as fh:
+        return json.loads(fh.read())
+
+
+def write_blob(oci, obj):
+    raw = json.dumps(obj, separators=(",", ":"), sort_keys=False).encode()
+    digest = "sha256:" + hashlib.sha256(raw).hexdigest()
+    path = blob_path(oci, digest)
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    with open(path, "wb") as fh:
+        fh.write(raw)
+    return digest, len(raw)
+
+
+def main():
+    ap = argparse.ArgumentParser(description=__doc__)
+    ap.add_argument("oci", help="OCI image directory (rootfs-oci)")
+    args = ap.parse_args()
+
+    index_path = os.path.join(args.oci, "index.json")
+    with open(index_path, encoding="utf-8") as fh:
+        index = json.load(fh)
+
+    stale, live, changed = set(), set(), False
+
+    for desc in index["manifests"]:
+        variant = desc.get("platform", {}).get("variant")
+        if not variant:
+            continue
+
+        manifest = read_blob(args.oci, desc["digest"])
+        config = read_blob(args.oci, manifest["config"]["digest"])
+        if config.get("variant") == variant:
+            continue
+
+        stale.add(desc["digest"])
+        stale.add(manifest["config"]["digest"])
+        config["variant"] = variant
+
+        digest, size = write_blob(args.oci, config)
+        manifest["config"]["digest"] = digest
+        manifest["config"]["size"] = size
+        live.add(digest)
+
+        digest, size = write_blob(args.oci, manifest)
+        desc["digest"] = digest
+        desc["size"] = size
+        live.add(digest)
+
+        changed = True
+        print("  Variant      : %s/%s"
+              % (desc["platform"].get("architecture", "?"), variant))
+
+    if not changed:
+        return
+
+    with open(index_path, "w", encoding="utf-8") as fh:
+        json.dump(index, fh, separators=(",", ":"))
+
+    for digest in stale - live:
+        try:
+            os.unlink(blob_path(args.oci, digest))
+        except OSError:
+            pass
+
+
+if __name__ == "__main__":
+    main()

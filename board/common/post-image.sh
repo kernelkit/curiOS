@@ -31,6 +31,8 @@ if [ -f "${HEALTH}" ]; then
     "${BR2_EXTERNAL_CURIOS_PATH}/utils/oci-healthcheck" "${OCI_DIR}" "${HEALTH}"
 fi
 
+"${BR2_EXTERNAL_CURIOS_PATH}/utils/oci-variant" "${OCI_DIR}"
+
 # Create tarball with OCI contents at root (no directory wrapper)
 cd "${OCI_DIR}"
 tar czf "${BINARIES_DIR}/${FILE}" .
