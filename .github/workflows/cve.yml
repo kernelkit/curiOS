@@ -20,13 +20,13 @@ jobs:
       matrix:
         app: [system, httpd, ntpd, nftables, neofetch]
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           submodules: recursive
       - name: Install pkg-stats dependencies
         run: pip install aiohttp setuptools
       - name: Restore Cache of NVD feed
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: dl/buildroot-nvd
           # The feed is a git clone that pkg-stats updates in place, so

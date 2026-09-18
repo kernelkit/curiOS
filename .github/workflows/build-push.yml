@@ -30,7 +30,7 @@ jobs:
       matrix:
         platform: ${{ fromJSON(inputs.platforms) }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           submodules: recursive
       - name: Build Variables
@@ -39,7 +39,7 @@ jobs:
           echo "dir=${{ inputs.app }}-${{ matrix.platform }}"        >> $GITHUB_OUTPUT
           echo "tgz=${{ inputs.app }}-${{ matrix.platform }}.tar.gz" >> $GITHUB_OUTPUT
       - name: Restore Cache of dl/
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: dl/
           key: dl-${{ matrix.platform }}-${{ hashFiles('.git/modules/buildroot/HEAD', 'configs/*', 'package/*/*.hash') }}
@@ -47,7 +47,7 @@ jobs:
             dl-${{ matrix.platform }}-
             dl-
       - name: Restore Cache of .ccache/
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: .ccache/
           key: ccache-${{ matrix.platform }}-${{ hashFiles('.git/modules/buildroot/HEAD', 'package/*/*.hash') }}
@@ -197,7 +197,7 @@ jobs:
                      "${{ steps.push.outputs.url }}@${{ steps.push.outputs.digest }}"
           done
       - name: Attest build provenance
-        uses: actions/attest-build-provenance@v2
+        uses: actions/attest-build-provenance@v4
         with:
           subject-name: ${{ steps.push.outputs.url }}
           subject-digest: ${{ steps.push.outputs.digest }}
