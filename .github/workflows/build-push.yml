@@ -79,7 +79,7 @@ jobs:
         run: |
           ./test/run.sh ${{ inputs.app }} \
               output/${{ steps.vars.outputs.dir }}/curios*-oci-*.tar.gz
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           path: output/${{ steps.vars.outputs.tgz }}
           name: artifact-${{ inputs.app }}-${{ matrix.platform }}
@@ -93,7 +93,7 @@ jobs:
       id-token: write
       attestations: write
     steps:
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
         with:
           pattern: artifact-${{ inputs.app }}-*
           merge-multiple: true
