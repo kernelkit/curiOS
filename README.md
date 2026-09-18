@@ -1,6 +1,6 @@
 <a href="https://www.flaticon.com/free-icons/docker"><img align="right" src="doc/container.png" width="200px" alt="Docker icons created by pocike - Flaticon"></a>
 
-# curiOS — container images built from source
+# curiOS — slim, curated containers
 
 [![License: GPL v2](https://img.shields.io/badge/License-GPL%20v2-blue.svg)](https://www.gnu.org/licenses/old-licenses/gpl-2.0.en.html)
 [![GitHub Release](https://img.shields.io/github/v/release/kernelkit/curiOS)](https://github.com/kernelkit/curiOS/releases)
@@ -13,16 +13,16 @@ It is a Buildroot `BR2_EXTERNAL` tree and nothing more.  If you know
 Buildroot, you already know how to use it, and how to point it at your
 own application.
 
-| Image | Compressed | Layers | What you get |
-|---|--:|--:|---|
-| **curios-httpd** | 262 KiB | 1 | a working HTTP server |
-| **curios-nftables** | 664 KiB | 1 | nft plus ruleset lifecycle |
-| **curios-ntpd** | 955 KiB | 1 | ISC ntpd |
-| **curios** | 9.4 MiB | 1 | full BusyBox staging system |
-| static-debian12 | 699 KiB | 12 | nothing -- CA certs and tzdata |
-| busybox | 2.1 MiB | 1 | shell and coreutils, no service |
-| alpine | 3.7 MiB | 1 | package manager, no service |
-| nginx | 27.4 MiB | 8 | an HTTP server |
+| Image               | Compressed | Layers | What you get                    |
+|---------------------|-----------:|-------:|---------------------------------|
+| **curios-httpd**    |    262 KiB |      1 | a working HTTP server           |
+| **curios-nftables** |    664 KiB |      1 | nft plus ruleset lifecycle      |
+| **curios-ntpd**     |    955 KiB |      1 | ISC ntpd                        |
+| **curios**          |    9.4 MiB |      1 | full BusyBox staging system     |
+| static-debian12     |    699 KiB |     12 | nothing -- CA certs and tzdata  |
+| busybox             |    2.1 MiB |      1 | shell and coreutils, no service |
+| alpine              |    3.7 MiB |      1 | package manager, no service     |
+| nginx               |   27.4 MiB |      8 | an HTTP server                  |
 
 <sub>amd64, measured with `utils/size-table`.</sub>
 
@@ -58,13 +58,13 @@ See [CONTRIBUTING.md](.github/CONTRIBUTING.md) for the longer version.
 Every release carries what an auditor asks for, generated from the build
 rather than asserted after it:
 
-| Artifact | How |
-|---|---|
-| SPDX 2.3 and CycloneDX 1.6 SBOM | `make sbom` |
-| License manifest and complete source | Buildroot `legal-info` |
-| CVE report per image | nightly `pkg-stats` against NVD |
-| Sigstore signature | keyless, from GitHub OIDC |
-| SLSA build provenance | `actions/attest-build-provenance` |
+| Artifact                             | How                               |
+|--------------------------------------|-----------------------------------|
+| SPDX 2.3 and CycloneDX 1.6 SBOM      | `make sbom`                       |
+| License manifest and complete source | Buildroot `legal-info`            |
+| CVE report per image                 | nightly `pkg-stats` against NVD   |
+| Sigstore signature                   | keyless, from GitHub OIDC         |
+| SLSA build provenance                | `actions/attest-build-provenance` |
 
 This matters if you sell into the EU.  CRA vulnerability reporting
 obligations [applied from 11 September 2026][11], and an SBOM belongs in
